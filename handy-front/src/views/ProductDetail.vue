@@ -31,11 +31,13 @@ const getImageUrl = (path) => {
 const currentIndex = ref(0);
 const isLightboxOpen = ref(false);
 
-// FIX: Apply getImageUrl to the computed property
+// FIX: Apply getImageUrl to the computed property (Safely handles objects or strings)
 const currentImage = computed(() => {
-    if (!product.value || !product.value.images.length) return '';
-    // Pass the raw path through the helper
-    return getImageUrl(product.value.images[currentIndex.value]);
+    if (!product.value || !product.value.images?.length) return '';
+    const rawImg = product.value.images[currentIndex.value];
+    // Extract string path safely whether backend sends a string or an object
+    const path = rawImg?.image_path || rawImg;
+    return getImageUrl(path);
 });
 
 // Navigation Functions
@@ -162,7 +164,8 @@ onMounted(async () => {
                         class="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden border-2 transition cursor-pointer"
                         :class="i === currentIndex ? 'border-emerald-500' : 'border-transparent hover:border-gray-300'"
                     >
-                        <img :src="getImageUrl(img)" class="w-full h-full object-cover">
+                        <!-- FIX: Safely extract string path whether it's an object or string -->
+                        <img :src="getImageUrl(img.image_path || img)" class="w-full h-full object-cover">
                     </div>
                 </div>
             </div>
