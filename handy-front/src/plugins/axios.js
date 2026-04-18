@@ -10,6 +10,7 @@ const api = axios.create({
     headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'//this heder thells the bgrok to skip the warning 
     },
     // withCredentials: true // Keep this commented if you are using Token Auth (Bearer Token)
 });
