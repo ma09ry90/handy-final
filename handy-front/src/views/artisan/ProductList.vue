@@ -15,7 +15,21 @@ const isLightboxOpen = ref(false);
 const selectedProduct = ref(null);
 const currentImageIndex = ref(0);
 
-// Removed baseUrl to match Reels pattern - Backend now provides full URLs
+// --- FIX: Image URL Helper ---
+// This handles converting relative paths to full URLs and strips /api automatically
+const getImageUrl = (path) => {
+    if (!path) return 'https://via.placeholder.com/400x300?text=No+Image';
+    
+    // 1. If it's already a full URL (http...), return it as-is
+    if (path.startsWith('http')) return path;
+
+    // 2. Construct URL
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+    
+    // Strip '/api' from the end if present, then add path
+    const cleanBase = baseUrl.replace(/\/api$/, '');
+    return `${cleanBase}/${path}`;
+};
 
 onMounted(async () => {
   await fetchProducts();
@@ -98,8 +112,8 @@ const getShortDescription = (product) => {
 
 const getProductImage = (product) => {
   if (product.images && product.images.length > 0) {
-    // Reels Pattern: Direct binding
-    return product.images[0].image_path;
+    // Pass the raw path through the helper
+    return getImageUrl(product.images[0].image_path);
   }
   return 'https://via.placeholder.com/400x300?text=No+Image';
 };
@@ -143,8 +157,8 @@ const prevImage = () => {
 
 const currentLightboxImage = computed(() => {
   if (!selectedProduct.value || !selectedProduct.value.images) return '';
-  // Reels Pattern: Direct binding
-  return selectedProduct.value.images[currentImageIndex.value].image_path;
+  // Pass the raw path through the helper
+  return getImageUrl(selectedProduct.value.images[currentImageIndex.value].image_path);
 });
 
 </script>
@@ -337,8 +351,8 @@ const currentLightboxImage = computed(() => {
                             class="w-16 h-16 border-2 rounded cursor-pointer flex-shrink-0"
                             :class="index === currentImageIndex ? 'border-emerald-500' : 'border-transparent opacity-60 hover:opacity-100'"
                         >
-                            <!-- Reels Pattern: Direct binding -->
-                            <img :src="img.image_path" class="w-full h-full object-cover">
+                            <!-- Pass the raw path through the helper -->
+                            <img :src="getImageUrl(img.image_path)" class="w-full h-full object-cover">
                         </div>
                      </div>
                 </div>

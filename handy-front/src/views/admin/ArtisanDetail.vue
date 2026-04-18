@@ -12,8 +12,24 @@ const profile = ref(null);
 const isLoading = ref(true);
 const rejectionReason = ref('');
 
-// Helper function matching the HomeView pattern
-// Note: If your backend 'path' already includes 'storage/', remove the 'storage/' + part below.
+// --- FIX: Document URL Helper ---
+// This handles converting relative paths to full URLs and strips /api automatically
+const getImageUrl = (path) => {
+    if (!path) return null;
+    
+    // 1. If it's already a full URL (http...), return it as-is
+    if (path.startsWith('http')) return path;
+
+    // 2. Construct URL
+    // We use VITE_API_BASE_URL, but usually that ends in /api.
+    // We need the BASE origin. 
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+    
+    // Strip '/api' from the end if present, then add path
+    const cleanBase = baseUrl.replace(/\/api$/, '');
+    return `${cleanBase}/${path}`;
+};
+
 const getDocumentUrl = (doc) => {
     if (!doc || !doc.path) return null;
     return getImageUrl('storage/' + doc.path);

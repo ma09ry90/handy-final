@@ -9,6 +9,22 @@ const { t } = useI18n()
 const wishlistStore = useWishlistStore()
 const cartStore = useCartStore()
 
+// --- FIX: Image URL Helper ---
+// This handles converting relative paths to full URLs and strips /api automatically
+const getImageUrl = (path) => {
+    if (!path) return 'https://via.placeholder.com/300';
+    
+    // 1. If it's already a full URL (http...), return it as-is
+    if (path.startsWith('http')) return path;
+
+    // 2. Construct URL
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+    
+    // Strip '/api' from the end if present, then add path
+    const cleanBase = baseUrl.replace(/\/api$/, '');
+    return `${cleanBase}/${path}`;
+};
+
 onMounted(() => {
   wishlistStore.fetchWishlist()
 })
@@ -34,8 +50,8 @@ const moveToCart = async (product) => {
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
       <div v-for="item in wishlistStore.items" :key="item.id" class="bg-white rounded-xl shadow-sm border overflow-hidden group flex flex-col">
         <RouterLink :to="`/product/${item.id}`" class="relative aspect-square overflow-hidden bg-gray-100">
-          <!-- Reels Pattern: Direct binding to the backend property -->
-          <img :src="item.images?.[0]?.image_path || 'https://via.placeholder.com/300'" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+          <!-- Pass the raw path through the helper -->
+          <img :src="getImageUrl(item.images?.[0]?.image_path)" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
           <button @click.prevent="wishlistStore.toggleWishlist(item.id)" class="absolute top-3 right-3 bg-white p-2 rounded-full shadow-md text-red-500 hover:bg-red-50">
             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/></svg>
           </button>

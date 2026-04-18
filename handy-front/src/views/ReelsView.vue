@@ -16,6 +16,22 @@ const loadingComments = ref(false);
 // Mobile Audio State (Start muted to allow autoplay)
 const globalMuted = ref(true);
 
+// --- FIX: Image URL Helper ---
+// This handles converting relative paths to full URLs and strips /api automatically
+const getImageUrl = (path) => {
+    if (!path) return null;
+    
+    // 1. If it's already a full URL (http...), return it as-is
+    if (path.startsWith('http')) return path;
+
+    // 2. Construct URL
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+    
+    // Strip '/api' from the end if present, then add path
+    const cleanBase = baseUrl.replace(/\/api$/, '');
+    return `${cleanBase}/${path}`;
+};
+
 // Fetch Feed
 const fetchVideos = async () => {
     try {
@@ -122,6 +138,7 @@ const initObserver = () => {
 
 onMounted(fetchVideos);
 </script>
+
 <template>
   <div class="h-screen w-full bg-black overflow-y-scroll snap-y snap-mandatory">
     
@@ -132,7 +149,7 @@ onMounted(fetchVideos);
         
         <!-- Video Element (Mobile Attributes Added) -->
         <video 
-            :src="video.video_url" 
+            :src="getImageUrl(video.video_url)" 
             loop 
             :muted="globalMuted" 
             playsinline 
@@ -150,10 +167,10 @@ onMounted(fetchVideos);
         <!-- ================= SIDEBAR (Right) ================= -->
         <div class="absolute right-3 bottom-20 flex flex-col items-center gap-5 z-20">
             
-            <!-- Shop Logo (Debug: added v-else logic) -->
+            <!-- Shop Logo -->
             <router-link :to="`/artisan/shop/${video.shop?.id}`" class="relative flex flex-col items-center">
                 <div class="w-10 h-10 rounded-full border-2 border-white overflow-hidden bg-gray-800 flex items-center justify-center">
-                    <img v-if="video.shop?.logo" :src="video.shop.logo" class="w-full h-full object-cover" alt="Shop">
+                    <img v-if="video.shop?.logo" :src="getImageUrl(video.shop.logo)" class="w-full h-full object-cover" alt="Shop">
                     <span v-else class="text-white font-bold text-sm">{{ video.shop?.name?.charAt(0) }}</span>
                 </div>
             </router-link>

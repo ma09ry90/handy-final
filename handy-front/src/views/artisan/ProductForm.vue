@@ -32,6 +32,23 @@ const form = reactive({
 // --- VR State ---
 const vrMode = ref('none'); 
 
+// --- FIX: Image URL Helper ---
+// This handles converting relative paths to full URLs and strips /api automatically.
+// It also ignores base64 strings from the local FileReader.
+const getImageUrl = (path) => {
+    if (!path) return null;
+    
+    // 1. If it's already a full URL or a base64 data string, return it as-is
+    if (path.startsWith('http') || path.startsWith('data:')) return path;
+
+    // 2. Construct URL
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+    
+    // Strip '/api' from the end if present, then add path
+    const cleanBase = baseUrl.replace(/\/api$/, '');
+    return `${cleanBase}/${path}`;
+};
+
 onMounted(async () => {
   await fetchCategories();
   if (isEdit.value) {
@@ -70,9 +87,9 @@ const fetchProduct = async () => {
     const or = translations.find(t => t.language_id === 3); 
     if (or) { form.name_or = or.name; form.description_or = or.description; }
 
-    // UPDATE: Reels Pattern - Directly bind to what the backend returns (no hardcoded IP)
+    // UPDATE: Apply getImageUrl to format backend paths properly
     if (data.images && Array.isArray(data.images)) {
-        imagePreviews.value = data.images.map(img => img.image_path);
+        imagePreviews.value = data.images.map(img => getImageUrl(img.image_path));
     } else {
         imagePreviews.value = [];
     }
@@ -95,6 +112,7 @@ const handleFileChange = (event) => {
     if (imagePreviews.value.length >= 5) return;
     form.images.push(file);
     const reader = new FileReader();
+    // Local files become base64 strings (data:image/...) which getImageUrl will safely ignore
     reader.onload = (e) => imagePreviews.value.push(e.target.result);
     reader.readAsDataURL(file);
   });

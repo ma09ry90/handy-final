@@ -12,8 +12,30 @@ const delivery = ref(null);
 const isLoading = ref(true);
 const rejectionReason = ref('');
 
-// Removed URL helpers to match the Reels pattern: 
-// The backend directly provides the full absolute URL.
+// --- FIX: Image & Document URL Helper ---
+// This handles converting relative paths to full URLs and strips /api automatically
+const getImageUrl = (path) => {
+    if (!path) return null;
+    
+    // 1. If it's already a full URL (http...), return it as-is
+    if (path.startsWith('http')) return path;
+
+    // 2. Construct URL
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+    
+    // Strip '/api' from the end if present, then add path
+    const cleanBase = baseUrl.replace(/\/api$/, '');
+    return `${cleanBase}/${path}`;
+};
+
+const getProfileImageUrl = (imagePath) => {
+    return getImageUrl(imagePath);
+};
+
+const getDocumentUrl = (doc) => {
+    if (!doc || !doc.path) return null;
+    return getImageUrl('storage/' + doc.path);
+};
 
 onMounted(async () => {
     const deliveryId = route.params.id;
@@ -112,9 +134,9 @@ const logout = () => {
                     <!-- Header -->
                     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                         <div class="flex items-center gap-4">
-                            <!-- Avatar / Profile Image (Direct binding like Reels) -->
+                            <!-- Avatar / Profile Image -->
                             <div v-if="delivery.profile_image" class="w-16 h-16 rounded-full overflow-hidden border-2 border-amber-300 flex-shrink-0">
-                                <img :src="delivery.profile_image" class="w-full h-full object-cover" alt="Profile">
+                                <img :src="getProfileImageUrl(delivery.profile_image)" class="w-full h-full object-cover" alt="Profile">
                             </div>
                             <div v-else class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
                                 <span class="text-2xl font-bold text-amber-700">
@@ -239,11 +261,11 @@ const logout = () => {
                         </div>
                         <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
                             
-                            <!-- National ID Doc (Direct binding like Reels) -->
+                            <!-- National ID Doc -->
                             <div class="border rounded-lg p-4 bg-gray-50 text-center">
                                 <p class="font-semibold text-sm text-gray-700 mb-2">National ID</p>
                                 <a v-if="delivery.national_id_document" 
-                                   :href="delivery.national_id_document.path" 
+                                   :href="getDocumentUrl(delivery.national_id_document)" 
                                    target="_blank"
                                    class="inline-block px-4 py-2 bg-emerald-50 text-emerald-700 rounded-md text-sm font-medium hover:bg-emerald-100">
                                     View File
@@ -255,7 +277,7 @@ const logout = () => {
                             <div class="border rounded-lg p-4 bg-gray-50 text-center">
                                 <p class="font-semibold text-sm text-gray-700 mb-2">Driving License</p>
                                 <a v-if="delivery.driving_license_document" 
-                                   :href="delivery.driving_license_document.path" 
+                                   :href="getDocumentUrl(delivery.driving_license_document)" 
                                    target="_blank"
                                    class="inline-block px-4 py-2 bg-emerald-50 text-emerald-700 rounded-md text-sm font-medium hover:bg-emerald-100">
                                     View File
@@ -267,7 +289,7 @@ const logout = () => {
                             <div class="border rounded-lg p-4 bg-gray-50 text-center">
                                 <p class="font-semibold text-sm text-gray-700 mb-2">Vehicle Registration</p>
                                 <a v-if="delivery.vehicle_registration_document" 
-                                   :href="delivery.vehicle_registration_document.path" 
+                                   :href="getDocumentUrl(delivery.vehicle_registration_document)" 
                                    target="_blank"
                                    class="inline-block px-4 py-2 bg-emerald-50 text-emerald-700 rounded-md text-sm font-medium hover:bg-emerald-100">
                                     View File

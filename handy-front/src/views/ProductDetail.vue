@@ -10,14 +10,32 @@ const router = useRouter();
 const product = ref(null);
 const loading = ref(true);
 
+// --- FIX: Media URL Helper ---
+// This handles converting relative paths to full URLs and strips /api automatically.
+// Safely applies to Images, Videos, and AR 3D Models (.glb/.gltf)
+const getImageUrl = (path) => {
+    if (!path) return 'https://via.placeholder.com/400';
+    
+    // 1. If it's already a full URL (http...), return it as-is
+    if (path.startsWith('http')) return path;
+
+    // 2. Construct URL
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+    
+    // Strip '/api' from the end if present, then add path
+    const cleanBase = baseUrl.replace(/\/api$/, '');
+    return `${cleanBase}/${path}`;
+};
+
 // --- Gallery State ---
 const currentIndex = ref(0);
 const isLightboxOpen = ref(false);
 
-// Computed for easy access to current image
+// FIX: Apply getImageUrl to the computed property
 const currentImage = computed(() => {
     if (!product.value || !product.value.images.length) return '';
-    return product.value.images[currentIndex.value];
+    // Pass the raw path through the helper
+    return getImageUrl(product.value.images[currentIndex.value]);
 });
 
 // Navigation Functions
@@ -26,7 +44,7 @@ const nextImage = () => {
     if (currentIndex.value < product.value.images.length - 1) {
         currentIndex.value++;
     } else {
-        currentIndex.value = 0; // Loop back to start
+        currentIndex.value = 0; 
     }
 };
 
@@ -35,7 +53,7 @@ const prevImage = () => {
     if (currentIndex.value > 0) {
         currentIndex.value--;
     } else {
-        currentIndex.value = product.value.images.length - 1; // Loop to end
+        currentIndex.value = product.value.images.length - 1;
     }
 };
 
@@ -62,9 +80,7 @@ const handleAddToCart = async () => {
   
   try {
     await cartStore.addToCart(product.value.id, product.value.versions[0].id, quantity.value)
-    // You can add a success popup/toast here if you want (e.g., "Added to cart!")
   } catch (error) {
-    // ✅ Catches the "Item unavailable" or "Out of stock" error from backend
     const errorMsg = error.response?.data?.message || 'Could not add to cart.';
     alert(errorMsg);
   }
@@ -82,7 +98,6 @@ onMounted(async () => {
         product.value = data;
     } catch (e) {
         console.error(e);
-        // Redirect home or show 404
         router.push('/');
     } finally {
         loading.value = false;
@@ -147,7 +162,7 @@ onMounted(async () => {
                         class="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden border-2 transition cursor-pointer"
                         :class="i === currentIndex ? 'border-emerald-500' : 'border-transparent hover:border-gray-300'"
                     >
-                        <img :src="img" class="w-full h-full object-cover">
+                        <img :src="getImageUrl(img)" class="w-full h-full object-cover">
                     </div>
                 </div>
             </div>
@@ -164,7 +179,8 @@ onMounted(async () => {
                 
                 <div class="aspect-square bg-gray-100 rounded-xl overflow-hidden">
                     <model-viewer
-                        :src="product.ar_model_path"
+                        <!-- FIX: Apply getImageUrl to AR model path -->
+                        :src="getImageUrl(product.ar_model_path)"
                         :alt="product.name"
                         ar
                         ar-modes="webxr scene-viewer quick-look"
@@ -214,7 +230,6 @@ onMounted(async () => {
             </div>
 
             <!-- Add to Cart Button -->
-            <!-- Replace the old Add to Cart button area with this: -->
             <div class="mt-8 border-t border-gray-200 pt-8">
                 <p class="text-sm text-gray-500 mb-4">
                     Sold by: <span class="text-gray-900 font-medium">{{ product.artisan?.shop || 'Handy Artisan' }}</span>

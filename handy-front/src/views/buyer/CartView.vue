@@ -12,6 +12,22 @@ const authStore = useAuthStore()
 
 const isCheckingOut = ref(false)
 
+// --- FIX: Image URL Helper ---
+// This handles converting relative paths to full URLs and strips /api automatically
+const getImageUrl = (path) => {
+    if (!path) return 'https://via.placeholder.com/100';
+    
+    // 1. If it's already a full URL (http...), return it as-is
+    if (path.startsWith('http')) return path;
+
+    // 2. Construct URL
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+    
+    // Strip '/api' from the end if present, then add path
+    const cleanBase = baseUrl.replace(/\/api$/, '');
+    return `${cleanBase}/${path}`;
+};
+
 const subtotal = computed(() => {
   return cartStore.items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
 })
@@ -71,8 +87,8 @@ onMounted(() => {
         <div v-for="item in cartStore.items" :key="item.version_id || item.id" class="flex gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
           
           <RouterLink :to="`/product/${item.product_id}`" class="flex-shrink-0">
-            <!-- Reels Pattern: Direct binding to item.image -->
-            <img :src="item.image || 'https://via.placeholder.com/100'" class="w-24 h-24 object-cover rounded-lg">
+            <!-- Pass the raw path through the helper -->
+            <img :src="getImageUrl(item.image)" class="w-24 h-24 object-cover rounded-lg">
           </RouterLink>
 
           <div class="flex-grow">

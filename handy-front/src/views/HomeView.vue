@@ -36,10 +36,26 @@ const changeLanguage = (code) => {
   isLangOpen.value = false;
 };
 
+// --- FIX: Image URL Helper ---
+// This handles converting relative paths to full URLs and strips /api automatically
+const getImageUrl = (path) => {
+    if (!path) return 'https://via.placeholder.com/400x300?text=No+Image';
+    
+    // 1. If it's already a full URL (http...), return it as-is
+    if (path.startsWith('http')) return path;
+
+    // 2. Construct URL
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+    
+    // Strip '/api' from the end if present, then add path
+    const cleanBase = baseUrl.replace(/\/api$/, '');
+    return `${cleanBase}/${path}`;
+};
+
 const getProductName = (product) => product.name || 'Product';
 const getShopName = (product) => product.shop?.shop_name || 'Handy Artisan';
-const getShopLogo = (product) => product.shop?.logo || null;
-const getProductImage = (product) => product.image || 'https://via.placeholder.com/400x300?text=No+Image';
+const getShopLogo = (product) => getImageUrl(product.shop?.logo);
+const getProductImage = (product) => getImageUrl(product.image);
 const formatPrice = (price) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'ETB' }).format(price || 0);
 
 const handleToggleWishlist = (product) => {
