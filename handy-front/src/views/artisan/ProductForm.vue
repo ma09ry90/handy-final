@@ -3,7 +3,8 @@ import { ref, reactive, onMounted, computed } from 'vue';
 import api from '@/plugins/axios';
 import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { useUploadThing } from '@/lib/uploadthing'; // ✅ Import Uploadthing hook
+// ⚠️ TEMPORARILY DISABLED TO STOP WHITE SCREEN CRASH
+// import { useUploadThing } from '@/lib/uploadthing'; 
 
 const { t } = useI18n(); 
 const router = useRouter();
@@ -14,17 +15,10 @@ const loading = ref(false);
 const categories = ref([]);
 const errors = ref({});
 
-// ✅ State for Images (Array of URLs)
 const imagePreviews = ref([]);
-const imageUrls = ref([]);
-
-// ✅ State for Video (Single URL)
+const imageUrls = ref([]); 
 const videoUrl = ref(null);
-const isUploadingVideo = ref(false);
-
-// ✅ State for AR Model (Single URL)
 const arModelUrl = ref(null);
-const isUploadingModel = ref(false);
 
 const form = reactive({
   category_id: '',
@@ -38,33 +32,19 @@ const form = reactive({
 
 const vrMode = ref('none'); 
 
-// ✅ Initialize Uploadthing Hook (Change "productMedia" to your endpoint name)
-const { startUpload } = useUploadThing("productMedia", {
-  onClientUploadComplete: (res) => {
-    console.log("Upload success", res);
-  },
-  onUploadError: (error) => {
-    alert(`Upload failed: ${error.message}`);
-  }
-});
-
-// --- IMAGE HANDLERS ---
-const handleImageChange = async (event) => {
+// ⚠️ SAFE MODE: Using standard file readers for now
+const handleImageChange = (event) => {
   const files = Array.from(event.target.files);
-  if (imageUrls.value.length + files.length > 5) {
-    alert("Maximum 5 images allowed.");
-    return;
-  }
-  
-  // Upload directly to cloud, bypassing Ngrok!
-  const result = await startUpload(files);
-  if (result) {
-    result.forEach(file => {
-      imageUrls.value.push(file.url);
-      imagePreviews.value.push(file.url);
-    });
-  }
-  event.target.value = ''; // Reset input
+  files.forEach(file => {
+    if (imagePreviews.value.length >= 5) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      imagePreviews.value.push(e.target.result);
+      imageUrls.value.push(e.target.result); // Will send as base64 for now
+    };
+    reader.readAsDataURL(file);
+  });
+  event.target.value = '';
 };
 
 const removeImage = (index) => {
@@ -72,41 +52,23 @@ const removeImage = (index) => {
   imageUrls.value.splice(index, 1);
 };
 
-// --- VIDEO HANDLER ---
-const handleVideoChange = async (event) => {
+// ⚠️ SAFE MODE: Just stores the file locally for the preview text
+const handleVideoChange = (event) => {
   const file = event.target.files[0];
-  if (!file) return;
-  
-  isUploadingVideo.value = true;
-  const result = await startUpload([file]);
-  if (result && result[0]) {
-    videoUrl.value = result[0].url;
+  if (file) {
+    // For now, just create a local URL to show the video preview
+    videoUrl.value = URL.createObjectURL(file); 
   }
-  isUploadingVideo.value = false;
-  event.target.value = '';
 };
+const removeVideo = () => { videoUrl.value = null; };
 
-const removeVideo = () => {
-  videoUrl.value = null;
-};
-
-// --- AR MODEL HANDLER ---
-const handleArModelChange = async (event) => {
+const handleArModelChange = (event) => {
   const file = event.target.files[0];
-  if (!file) return;
-  
-  isUploadingModel.value = true;
-  const result = await startUpload([file]);
-  if (result && result[0]) {
-    arModelUrl.value = result[0].url;
+  if (file) {
+    arModelUrl.value = "Local file selected: " + file.name;
   }
-  isUploadingModel.value = false;
-  event.target.value = '';
 };
-
-const removeArModel = () => {
-  arModelUrl.value = null;
-};
+const removeArModel = () => { arModelUrl.value = null; };
 
 // --- LIFECYCLE & API ---
 onMounted(async () => {
@@ -140,7 +102,6 @@ const fetchProduct = async () => {
     const or = translations.find(t => t.language_id === 3); 
     if (or) { form.name_or = or.name; form.description_or = or.description; }
 
-    // Load Existing Cloud URLs
     if (data.images?.length) {
       const urls = data.images.map(img => img.image_path);
       imageUrls.value = urls;
@@ -163,7 +124,6 @@ const fetchProduct = async () => {
   }
 };
 
-// ✅ MAGIC: Submit is now just a tiny JSON payload. No heavy lifting!
 const submitForm = async () => {
   loading.value = true;
   errors.value = {};
@@ -174,33 +134,31 @@ const submitForm = async () => {
     return;
   }
 
-  const payload = {
-    category_id: form.category_id,
-    price: form.price,
-    stock: form.stock,
-    sku: form.sku,
-    name_en: form.name_en, description_en: form.description_en,
-    name_am: form.name_am, description_am: form.description_am,
-    name_or: form.name_or, description_or: form.description_or,
-    
-    // Pure URLs sent directly!
-    images: imageUrls.value,
-    video: videoUrl.value,
-    ar_model: arModelUrl.value,
-    vr_request: vrMode.value === 'upload',
-  };
+  // For now, send as FormData so Laravel can handle the base64/local files
+  const formData = new FormData();
+  formData.append('category_id', form.category_id);
+  formData.append('price', form.price);
+  formData.append('stock', form.stock);
+  formData.append('sku', form.sku);
+  formData.append('name_en', form.name_en);
+  formData.append('description_en', form.description_en);
+  formData.append('name_am', form.name_am);
+  formData.append('description_am', form.description_am);
+  formData.append('name_or', form.name_or);
+  formData.append('description_or', form.description_or);
+  formData.append('vr_request', vrMode.value === 'upload');
+
+  // If editing, append method spoof
+  if (isEdit.value) {
+    formData.append('_method', 'PUT');
+  }
 
   try {
-    const config = {
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
-    };
-
     if (isEdit.value) {
-      payload._method = 'PUT';
-      await api.post(`/artisan/products/${route.params.id}`, payload, config);
+      await api.post(`/artisan/products/${route.params.id}`, formData);
       alert('Product updated!');
     } else {
-      await api.post('/artisan/products', payload, config);
+      await api.post('/artisan/products', formData);
       alert('Product created!');
     }
     router.push('/artisan/products');
