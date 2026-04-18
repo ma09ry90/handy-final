@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* FIX: Force HTML and Body to fill the entire screen height */
+html, body, #app {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden; /* Prevent horizontal scroll */
+}
+
+/* Ensure the main container takes full height */
+.min-h-screen {
+  min-height: 100vh;
+}
+
+/* src/assets/main.css - Add this at the end */
+
+/* Leaflet marker icon fix for Vite/Webpack */
+.leaflet-default-icon-path {
+  background-image: url("https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png");
+}
+
+.custom-marker {
+  background: none !important;
+  border: none !important;
+}
+
+/* Ensure proper z-index for map controls */
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 400 !important;
+}
