@@ -98,6 +98,11 @@ onMounted(async () => {
     try {
         const { data } = await api.get(`/products/${route.params.id}`);
         product.value = data;
+        
+        // --- TEMPORARY DEBUG LOG ---
+        console.log("Raw ar_model_path from DB:", data.ar_model_path);
+        console.log("Generated URL for Model Viewer:", getImageUrl(data.ar_model_path));
+        // ----------------------------
     } catch (e) {
         console.error(e);
         router.push('/');
