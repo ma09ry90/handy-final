@@ -32,23 +32,6 @@ const form = reactive({
 // --- VR State ---
 const vrMode = ref('none'); 
 
-// --- FIX: Image URL Helper ---
-// This handles converting relative paths to full URLs and strips /api automatically.
-// It also ignores base64 strings from the local FileReader.
-const getImageUrl = (path) => {
-    if (!path) return null;
-    
-    // 1. If it's already a full URL or a base64 data string, return it as-is
-    if (path.startsWith('http') || path.startsWith('data:')) return path;
-
-    // 2. Construct URL
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
-    
-    // Strip '/api' from the end if present, then add path
-    const cleanBase = baseUrl.replace(/\/api$/, '');
-    return `${cleanBase}/${path}`;
-};
-
 onMounted(async () => {
   await fetchCategories();
   if (isEdit.value) {
@@ -67,7 +50,6 @@ const fetchCategories = async () => {
 
 const fetchProduct = async () => {
   try {
-    // FIX: Added backticks
     const { data } = await api.get(`/artisan/products/${route.params.id}`);
     
     form.category_id = data.category_id;
@@ -75,28 +57,28 @@ const fetchProduct = async () => {
     form.stock = data.versions[0]?.stock;
     form.sku = data.versions[0]?.sku;
 
-    // FIX: Added logical OR ()
     const translations = data.versions[0]?.translations || [];
     
     const en = translations.find(t => t.language_id === 1); 
     if (en) { form.name_en = en.name; form.description_en = en.description; }
-
     const am = translations.find(t => t.language_id === 2); 
     if (am) { form.name_am = am.name; form.description_am = am.description; }
-
     const or = translations.find(t => t.language_id === 3); 
     if (or) { form.name_or = or.name; form.description_or = or.description; }
 
-    // UPDATE: Apply getImageUrl to format backend paths properly
+    // FIX: Load existing backend URLs directly into form.images and previews
     if (data.images && Array.isArray(data.images)) {
-        imagePreviews.value = data.images.map(img => getImageUrl(img.image_path));
+        const urls = data.images.map(img => img.image_path);
+        imagePreviews.value = urls.map(url => getImageUrl(url));
+        form.images = urls; 
     } else {
         imagePreviews.value = [];
     }
     
-    // Check if product already has a model
-    if (data.versions[0]?.ar_model_path) {
+    // Check if product already has a model URL
+    if (data.basePath && data.versions[0]?.ar_model_path) {
         vrMode.value = 'upload';
+        form.ar_model = data.versions[0].ar_model_path;
     }
 
   } catch (e) {
@@ -106,13 +88,12 @@ const fetchProduct = async () => {
   }
 };
 
+// FIX: Only update local preview, do NOT push raw file objects into form.images anymore
 const handleFileChange = (event) => {
   const files = Array.from(event.target.files);
   files.forEach(file => {
     if (imagePreviews.value.length >= 5) return;
-    form.images.push(file);
     const reader = new FileReader();
-    // Local files become base64 strings (data:image/...) which getImageUrl will safely ignore
     reader.onload = (e) => imagePreviews.value.push(e.target.result);
     reader.readAsDataURL(file);
   });
@@ -120,7 +101,6 @@ const handleFileChange = (event) => {
 
 const removeImage = (index) => {
   imagePreviews.value.splice(index, 1);
-  form.images.splice(index, 1);
 };
 
 const submitForm = async () => {
@@ -133,55 +113,40 @@ const submitForm = async () => {
       return;
   }
 
-  const formData = new FormData();
-  formData.append('category_id', form.category_id);
-  formData.append('price', form.price);
-  formData.append('stock', form.stock);
-  formData.append('sku', form.sku || '');
-
-  // Languages
-  if (form.name_en) { formData.append('name_en', form.name_en); formData.append('description_en', form.description_en); }
-  if (form.name_am) { formData.append('name_am', form.name_am); formData.append('description_am', form.description_am); }
-  if (form.name_or) { formData.append('name_or', form.name_or); formData.append('description_or', form.description_or); }
-
-  // Images - FIX: Added backticks
-  for (let i = 0; i < form.images.length; i++) {
-    formData.append(`images[${i}]`, form.images[i]);
-  }
- 
-  // --- VR UPLOAD LOGIC ---
-  if (vrMode.value === 'upload' && form.ar_model) {
-      const fileName = form.ar_model.name.toLowerCase();
-      const validExtensions = ['.glb', '.gltf'];
-      const isValid = validExtensions.some(ext => fileName.endsWith(ext));
-      if (!isValid) {
-          errors.value.ar_model = ['Invalid file type. Please upload .glb or .gltf'];
-          loading.value = false;
-          return;
-      }
-      if (form.ar_model.size > 10240 * 1024) { 
-          errors.value.ar_model = ['File size exceeds 10MB limit.'];
-          loading.value = false;
-          return;
-      }
-      
-      formData.append('ar_model', form.ar_model);
-  }
-  // -------------------------------------------------
+  // FIX: Send as JSON instead of FormData. Backend now expects pure URLs.
+  const payload = {
+    category_id: form.category_id,
+    price: form.price,
+    stock: form.stock,
+    sku: form.sku || '',
+    name_en: form.name_en,
+    description_en: form.description_en,
+    name_am: form.name_am,
+    description_am: form.description_am,
+    name_or: form.name_or,
+    description_or: form.description_or,
+    // Send the array of URLs (covers both old backend URLs and new local base64 previews)
+    images: imagePreviews.value, 
+    // Send the AR model URL string (Uploadthing component returns a URL string)
+    ar_model: form.ar_model ? form.ar_model : null,
+    vr_request: vrMode.value === 'upload',
+    vr_dimensions: form.vr_dimensions || null,
+    vr_material: form.vr_material || null,
+    vr_color: form.vr_color || null,
+  };
 
   try {
     let response; 
 
     if (isEdit.value) {
-      formData.append('_method', 'PUT');
-      // FIX: Added backticks
-      response = await api.post(`/artisan/products/${route.params.id}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      payload._method = 'PUT'; // Laravel requires this to fake a PUT request via POST
+      response = await api.post(`/artisan/products/${route.params.id}`, payload, {
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
       });
       alert('Product updated!');
     } else {
-      response = await api.post('/artisan/products', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      response = await api.post('/artisan/products', payload, {
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
       });
       alert('Product created!');
     }

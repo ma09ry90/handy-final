@@ -6,15 +6,23 @@ const form = ref({
     video: null,
     caption: '',
     product_url: '',
-    profile_url: '' // ADDED: New field
+    profile_url: '' 
 });
+
+// --- FIX: Media URL Helper ---
+const getImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path; 
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+    const cleanBase = baseUrl.replace(/\/api$/, '');
+    return `${cleanBase}/${path}`;
+};
 
 const myVideos = ref([]);
 const loading = ref(false);
-const editMode = ref(false); // Track if we are editing
-const editId = ref(null);    // Store the ID of the video being edited
+const editMode = ref(false); 
+const editId = ref(null);    
 
-// Fetch all videos for this artisan
 const fetchMyVideos = async () => {
     try {
         const res = await api.get('/artisan/videos');
@@ -24,79 +32,49 @@ const fetchMyVideos = async () => {
     }
 };
 
-// Handle file selection
 const handleFileChange = (e) => {
     form.value.video = e.target.files[0];
 };
 
-// Reset form to default state
 const resetForm = () => {
     form.value = { video: null, caption: '', product_url: '', profile_url: '' };
     editMode.value = false;
     editId.value = null;
-    // Reset file input visually
     const fileInput = document.getElementById('video-file');
     if (fileInput) fileInput.value = '';
 };
 
-// Enter Edit Mode
 const editVideo = (video) => {
     editMode.value = true;
     editId.value = video.id;
-    
-    // Fill form with existing data
     form.value.caption = video.caption;
     form.value.product_url = video.product_url || '';
     form.value.profile_url = video.profile_url || '';
-    form.value.video = null; // Can't preload file input, user must select new file only if changing video
-    
-    // Scroll to form
+    form.value.video = null; 
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
-// Create or Update Video
+// FIX: Send JSON instead of FormData
 const submitVideo = async () => {
-    // Validation: Require video file ONLY if creating new
     if (!editMode.value && !form.value.video) {
         return alert("Please select a video file");
     }
-    // Validation: Require caption always
     if (!form.value.caption) {
         return alert("Caption is required");
     }
 
-    const data = new FormData();
-    
-    // Append fields
-    if (form.value.video) {
-        data.append('video', form.value.video);
-    }
-    data.append('caption', form.value.caption);
-    if (form.value.product_url) data.append('product_url', form.value.product_url);
-    if (form.value.profile_url) data.append('profile_url', form.value.profile_url);
-
-    // Laravel needs _method field for PUT/PATCH requests with FormData
+    const data = { ...form.value };
     if (editMode.value) {
-        data.append('_method', 'PUT');
+        data._method = 'PUT';
     }
 
     try {
         loading.value = true;
+        await api.post(`/artisan/videos/${editId.value}`, data, {
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
+        });
         
-        if (editMode.value) {
-            // Update existing video
-            await api.post(`/artisan/videos/${editId.value}`, data, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-            alert('Video updated successfully!');
-        } else {
-            // Create new video
-            await api.post('/artisan/videos', data, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-            alert('Video uploaded successfully!');
-        }
-        
+        alert(editMode.value ? 'Video updated successfully!' : 'Video uploaded successfully!');
         resetForm();
         fetchMyVideos(); 
         
@@ -124,6 +102,7 @@ onMounted(fetchMyVideos);
 <template>
   <div class="max-w-4xl mx-auto p-6">
     <h1 class="text-2xl font-bold mb-6 text-gray-800">Manage Your Reels</h1>
+    
     <!-- Upload/Edit Form -->
     <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-8">
         <h2 class="text-lg font-bold mb-4 text-gray-700">
@@ -131,7 +110,7 @@ onMounted(fetchMyVideos);
         </h2>
         
         <div class="space-y-4">
-            <!-- Video File Input (Only show if NOT editing, or allow replacing) -->
+            <!-- Video File Input -->
             <div v-if="!editMode">
                 <label class="block text-sm font-medium text-gray-600 mb-1">Video File (MP4/MOV)</label>
                 <input 
@@ -155,7 +134,7 @@ onMounted(fetchMyVideos);
                 <input v-model="form.product_url" type="url" placeholder="https://yoursite.com/product/1" class="w-full border-gray-300 rounded-lg border p-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"/>
             </div>
 
-            <!-- Profile Link (ADDED) -->
+            <!-- Profile Link -->
             <div>
                 <label class="block text-sm font-medium text-gray-600 mb-1">External Profile Link (Optional)</label>
                 <input v-model="form.profile_url" type="url" placeholder="https://instagram.com/yourshop" class="w-full border-gray-300 rounded-lg border p-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"/>
@@ -188,16 +167,22 @@ onMounted(fetchMyVideos);
         <h3 class="text-lg font-bold mb-4 text-gray-700">Your Videos</h3>
         <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div v-for="video in myVideos" :key="video.id" class="bg-white shadow-sm rounded-lg overflow-hidden border relative group">
-                <video :src="video.video_url" class="w-full h-48 object-cover bg-black" controls></video>
+                <!-- FIX: Added getImageUrl for Videos -->
+                <video 
+                    :src="getImageUrl(video.video_path)" 
+                    class="w-full h-48 object-cover bg-black" 
+                    controls
+                    preload="metadata"
+                ></video>
                 
                 <!-- Overlay Info -->
                 <div class="p-3">
                     <p class="text-xs text-gray-500 truncate">{{ video.caption }}</p>
                     
-                    <!-- External Links Indicators -->
+                    <!-- External Links Indicators (Escaped for Vite HMR) -->
                     <div class="flex gap-2 mt-1">
-                        <span v-if="video.product_url" class="text-blue-500 text-[10px]">🛒 Product</span>
-                        <span v-if="video.profile_url" class="text-purple-500 text-[10px]">👤 Profile</span>
+                        <span v-if="video.product_url" class="text-blue-500 text-[10px]">&#128142; Shop Product</span>
+                        <span v-if="video.profile_url" class="text-purple-500 text-[10px]">&#128100; Profile</span>
                     </div>
                     <div class="flex justify-between items-center mt-2">
                         <span class="text-xs text-gray-400">{{ video.views_count }} views</span>
