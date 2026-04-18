@@ -3,8 +3,6 @@ import { ref, reactive, onMounted, computed } from 'vue';
 import api from '@/plugins/axios';
 import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-// ⚠️ TEMPORARILY DISABLED TO STOP WHITE SCREEN CRASH
-// import { useUploadThing } from '@/lib/uploadthing'; 
 
 const { t } = useI18n(); 
 const router = useRouter();
@@ -20,6 +18,10 @@ const imageUrls = ref([]);
 const videoUrl = ref(null);
 const arModelUrl = ref(null);
 
+// ✅ Added these back to prevent template crash
+const isUploadingVideo = ref(false);
+const isUploadingModel = ref(false);
+
 const form = reactive({
   category_id: '',
   price: '',
@@ -32,7 +34,6 @@ const form = reactive({
 
 const vrMode = ref('none'); 
 
-// ⚠️ SAFE MODE: Using standard file readers for now
 const handleImageChange = (event) => {
   const files = Array.from(event.target.files);
   files.forEach(file => {
@@ -40,7 +41,7 @@ const handleImageChange = (event) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       imagePreviews.value.push(e.target.result);
-      imageUrls.value.push(e.target.result); // Will send as base64 for now
+      imageUrls.value.push(e.target.result); 
     };
     reader.readAsDataURL(file);
   });
@@ -52,11 +53,9 @@ const removeImage = (index) => {
   imageUrls.value.splice(index, 1);
 };
 
-// ⚠️ SAFE MODE: Just stores the file locally for the preview text
 const handleVideoChange = (event) => {
   const file = event.target.files[0];
   if (file) {
-    // For now, just create a local URL to show the video preview
     videoUrl.value = URL.createObjectURL(file); 
   }
 };
@@ -70,7 +69,6 @@ const handleArModelChange = (event) => {
 };
 const removeArModel = () => { arModelUrl.value = null; };
 
-// --- LIFECYCLE & API ---
 onMounted(async () => {
   await fetchCategories();
   if (isEdit.value) await fetchProduct();
@@ -116,7 +114,6 @@ const fetchProduct = async () => {
       vrMode.value = 'upload';
       arModelUrl.value = data.versions[0].ar_model_path;
     }
-
   } catch (e) {
     console.error(e);
     alert('Failed to load product');
@@ -134,7 +131,6 @@ const submitForm = async () => {
     return;
   }
 
-  // For now, send as FormData so Laravel can handle the base64/local files
   const formData = new FormData();
   formData.append('category_id', form.category_id);
   formData.append('price', form.price);
@@ -148,7 +144,6 @@ const submitForm = async () => {
   formData.append('description_or', form.description_or);
   formData.append('vr_request', vrMode.value === 'upload');
 
-  // If editing, append method spoof
   if (isEdit.value) {
     formData.append('_method', 'PUT');
   }
@@ -186,9 +181,9 @@ const submitForm = async () => {
 
         <form @submit.prevent="submitForm" class="space-y-6">
           
-          <!-- LANGUAGE SECTIONS (Collapsed for brevity, keep yours exactly as is) -->
+          <!-- LANGUAGE SECTIONS -->
           <div class="border p-4 rounded mb-4">
-            <p class="text-center text-gray-400 text-sm">[ English, Amharic, Oromo fields go here - unchanged ]</p>
+            <p class="text-center text-gray-400 text-sm">[ Put your English, Amharic, Oromo fields here ]</p>
           </div>
 
           <!-- COMMON FIELDS -->
@@ -219,7 +214,7 @@ const submitForm = async () => {
             </div>
           </div> 
 
-          <!-- ✅ CLOUD IMAGES -->
+          <!-- IMAGES -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Product Images</label>
             <div class="flex gap-4 flex-wrap">
@@ -236,28 +231,25 @@ const submitForm = async () => {
             </div>
           </div>
 
-          <!-- ✅ CLOUD VIDEO -->
+          <!-- VIDEO -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Promo Video (Optional)</label>
-            
             <div v-if="videoUrl" class="relative bg-gray-100 p-2 rounded border flex items-center gap-4">
                <video :src="videoUrl" class="h-20 rounded bg-black" controls></video>
                <button type="button" @click="removeVideo" class="text-red-500 hover:text-red-700 font-bold text-lg">Remove Video</button>
             </div>
-            
             <div v-else>
               <label class="block w-full border-dashed border-2 p-6 text-center text-gray-400 cursor-pointer hover:border-blue-500 hover:text-blue-500 transition rounded">
-                <span v-if="isUploadingVideo">Uploading to cloud...</span>
+                <span v-if="isUploadingVideo">Uploading...</span>
                 <span v-else>+ Add Video (.mp4, .webm)</span>
                 <input type="file" class="hidden" @change="handleVideoChange" accept="video/*" :disabled="isUploadingVideo" />
               </label>
             </div>
           </div>
 
-          <!-- ✅ CLOUD AR MODEL -->
+          <!-- AR MODEL -->
           <div class="border-t border-gray-200 pt-6 mt-6">
               <h3 class="text-lg font-semibold text-gray-800 mb-4">3D / Augmented Reality</h3>
-              
               <div class="flex items-center gap-4 mb-4">
                   <label class="flex items-center cursor-pointer">
                       <input type="checkbox" v-model="vrMode" true-value="upload" false-value="none" class="w-4 h-4 text-purple-600 rounded">
@@ -267,16 +259,13 @@ const submitForm = async () => {
 
               <div v-if="vrMode === 'upload'" class="space-y-3 bg-purple-50 p-4 rounded-lg border border-purple-200">
                   <label class="block text-sm font-medium text-purple-800">3D Model File</label>
-                  
-                  <!-- Show existing or newly uploaded -->
                   <div v-if="arModelUrl" class="bg-green-50 border border-green-200 rounded p-3 text-sm text-green-700 flex justify-between items-center">
-                      <span>✓ 3D Model attached successfully</span>
-                      <button type="button" @click="removeArModel" class="text-red-500 font-bold">Replace</button>
+                      <span>✓ {{ arModelUrl }}</span>
+                      <button type="button" @click="removeArModel" class="text-red-500 font-bold">Remove</button>
                   </div>
-                  
                   <div v-else>
                      <label class="block w-full border-2 border-dashed border-purple-300 p-6 text-center text-purple-500 cursor-pointer hover:bg-purple-100 transition rounded">
-                        <span v-if="isUploadingModel">Uploading model to cloud...</span>
+                        <span v-if="isUploadingModel">Uploading...</span>
                         <span v-else>+ Drop or select .glb / .gltf file</span>
                         <input type="file" class="hidden" @change="handleArModelChange" accept=".glb,.gltf" :disabled="isUploadingModel" />
                      </label>
