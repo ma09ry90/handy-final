@@ -125,7 +125,8 @@ const router = createRouter({
       component: () => import('../views/delivery/DeliveryDashboard.vue'),
       meta: { requiresAuth: true, role: 'delivery' }
     },
-        {
+    // --- Artisan Routes (Protected Group) ---
+    {
       path: '/artisan',
       component: ArtisanLayout,
       meta: { requiresAuth: true, role: 'artisan' },
@@ -142,27 +143,22 @@ const router = createRouter({
           component: () => import('../views/artisan/ProductList.vue'),
           meta: { title: 'My Products' }
         },
-        
-        // ✅ ADD THIS: Create New Product Route
         {
           path: 'products/create',
           name: 'ArtisanProductCreate',
           component: () => import('../views/artisan/ProductForm.vue'),
-          meta: { title: 'Add New Product' }
+          meta: { title: 'Add new product' }
         },
-        
-        // ✅ ADD THIS: Edit Existing Product Route
-        {
-          path: 'products/:id/edit',
-          name: 'ArtisanProductEdit',
-          component: () => import('../views/artisan/ProductForm.vue'),
-          meta: { title: 'Edit Product' }
-        },
-
         {
           path: 'orders',
           name: 'ArtisanOrders',
           component: () => import('../views/artisan/Orders.vue'),
+          meta: { title: 'My Orders' }
+        },
+        {
+          path: 'wallet',
+          name: 'Artisanwallet',
+          component: () => import('../views/artisan/ArtisanWallet.vue'),
           meta: { title: 'My Orders' }
         },
         {
