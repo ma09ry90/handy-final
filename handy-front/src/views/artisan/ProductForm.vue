@@ -171,10 +171,10 @@ const submitForm = async () => {
     description_or: form.description_or,
     images: imagePreviews.value, 
     ar_model: form.ar_model ? form.ar_model : null,
-    vr_request: vrMode.value === 'upload',
-    vr_dimensions: form.vr_dimensions || null,
-    vr_material: form.vr_material || null,
-    vr_color: form.vr_color || null,
+    //vr_request: vrMode.value === 'upload',
+    //vr_dimensions: form.vr_dimensions || null,
+    //vr_material: form.vr_material || null,
+    //vr_color: form.vr_color || null,
   };
 
   try {
