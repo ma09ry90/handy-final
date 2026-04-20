@@ -43,8 +43,15 @@ const handleCloudinaryUpload = async (file) => {
       method: 'POST',
       body: formData
     });
-    const data = await response.json();
-    return data.secure_url; 
+        const data = await response.json();
+    let url = data.secure_url;
+    
+    // ✅ The Mobile Fix: Inject f_auto,q_auto into the URL
+    if (url.includes('res.cloudinary.com')) {
+        url = url.replace('/upload/', '/upload/f_auto,q_auto/');
+    }
+    
+    return url;  
   } catch (error) {
     console.error("Cloudinary Upload failed", error);
     alert("Failed to upload file to cloud.");
