@@ -38,20 +38,16 @@ const changeLanguage = (code) => {
 
 // --- FIX: Image URL Helper ---
 // This handles converting relative paths to full URLs and strips /api automatically
-// --- FIX: Bulletproof Image URL Helper ---
 const getImageUrl = (path) => {
     if (!path) return 'https://via.placeholder.com/400x300?text=No+Image';
     
-    // ✅ FIX 1: Strip accidental "storage/" if a full URL is hiding behind it
-    if (path.includes('storage/https://') || path.includes('storage/http://')) {
-        path = path.replace('storage/', '');
-    }
-    
-    // FIX 2: If it's already a full URL (http...), return it as-is
+    // 1. If it's already a full URL (http...), return it as-is
     if (path.startsWith('http')) return path;
 
-    // FIX 3: Construct URL for local Laravel files
+    // 2. Construct URL
     const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+    
+    // Strip '/api' from the end if present, then add path
     const cleanBase = baseUrl.replace(/\/api$/, '');
     return `${cleanBase}/${path}`;
 };
