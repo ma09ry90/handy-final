@@ -158,7 +158,7 @@ const submitForm = async () => {
   }
 
   // Sending pure JSON with URLs. Cloudflare Tunnel only sees this tiny text payload!
-  const payload = {
+    const payload = {
     category_id: form.category_id,
     price: form.price,
     stock: form.stock,
@@ -171,10 +171,12 @@ const submitForm = async () => {
     description_or: form.description_or,
     images: imagePreviews.value, 
     ar_model: form.ar_model ? form.ar_model : null,
-    //vr_request: vrMode.value === 'upload',
-    //vr_dimensions: form.vr_dimensions || null,
-    //vr_material: form.vr_material || null,
-    //vr_color: form.vr_color || null,
+    
+    // ✅ Explicitly tell Laravel we are NOT making a VR request
+    vr_request: false, 
+    vr_dimensions: null,
+    vr_material: null,
+    vr_color: null,
   };
 
   try {
