@@ -150,6 +150,12 @@ const router = createRouter({
           meta: { title: 'Add new product' }
         },
         {
+          path: 'products/:id/edit',
+          name: 'ArtisanProductEdit',
+          component: () => import('../views/artisan/ProductForm.vue'),
+          meta: { title: 'Edit product' }
+        },
+        {
           path: 'orders',
           name: 'ArtisanOrders',
           component: () => import('../views/artisan/Orders.vue'),
