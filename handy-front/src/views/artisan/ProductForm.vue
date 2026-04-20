@@ -174,9 +174,6 @@ const submitForm = async () => {
     
     // ✅ Explicitly tell Laravel we are NOT making a VR request
     vr_request: false, 
-    vr_dimensions: null,
-    vr_material: null,
-    vr_color: null,
   };
 
   try {
