@@ -29,7 +29,7 @@ const form = reactive({
 const vrMode = ref('none'); 
 const arModelDisplayName = ref(''); 
 
-// ✅ Cloudinary Upload Function (Replaces Uploadthing)
+// ✅ PERFECTED Cloudinary Upload Function
 const handleCloudinaryUpload = async (file) => {
   const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
   const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
@@ -39,19 +39,25 @@ const handleCloudinaryUpload = async (file) => {
   formData.append('upload_preset', uploadPreset);
 
   try {
-    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
+    // ✅ FIX 1: Force exact resource types to prevent 403 errors
+    let resourceType = 'image'; // Default to image
+    if (file.type.startsWith('video/')) {
+      resourceType = 'video';
+    } else if (file.name.endsWith('.glb') || file.name.endsWith('.gltf')) {
+      resourceType = 'raw'; // 3D models must be raw
+    }
+
+    // ✅ FIX 2: Use dynamic resourceType instead of 'auto'
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`, {
       method: 'POST',
       body: formData
     });
-        const data = await response.json();
-    let url = data.secure_url;
     
-    // ✅ The Mobile Fix: Inject f_auto,q_auto into the URL
-    if (url.includes('res.cloudinary.com')) {
-        url = url.replace('/upload/', '/upload/f_auto,q_auto/');
-    }
+    const data = await response.json();
     
-    return url;  
+    // ✅ FIX 3: Return the pure, untouched URL. No f_auto,q_auto hacks that trigger 403s.
+    return data.secure_url;  
+    
   } catch (error) {
     console.error("Cloudinary Upload failed", error);
     alert("Failed to upload file to cloud.");
@@ -99,6 +105,7 @@ const fetchProduct = async () => {
     const or = translations.find(t => t.language_id === 3); 
     if (or) { form.name_or = or.name; form.description_or = or.description; }
 
+    // ✅ WORKS PERFECTLY ON EDIT: Just loads the URLs directly from the database
     if (data.images && Array.isArray(data.images)) {
         const urls = data.images.map(img => img.image_path);
         imagePreviews.value = urls.map(url => getImageUrl(url));
@@ -120,7 +127,7 @@ const fetchProduct = async () => {
   }
 };
 
-// ✅ Updated: Uploads directly to Cloudinary, pushes URL to preview
+// ✅ Uploads directly to Cloudinary, pushes URL to preview
 const handleFileChange = async (event) => {
   const files = Array.from(event.target.files);
   if (imagePreviews.value.length + files.length > 5) return;
@@ -128,29 +135,29 @@ const handleFileChange = async (event) => {
   for (const file of files) {
     const publicUrl = await handleCloudinaryUpload(file);
     if (publicUrl) {
-      imagePreviews.value.push(publicUrl); // Push cloud URL directly
+      imagePreviews.value.push(publicUrl); 
     }
   }
-  event.target.value = ''; // Reset input
+  event.target.value = ''; 
 };
 
 const removeImage = (index) => {
   imagePreviews.value.splice(index, 1);
 };
 
-// ✅ Updated: Uploads AR model to Cloudinary, saves URL
+// ✅ Uploads AR model to Cloudinary, saves URL
 const handleArModelChange = async (event) => {
   const file = event.target.files[0];
   if (!file) return;
   
-  arModelDisplayName.value = file.name + " (Uploading...)"; // Save name for display
+  arModelDisplayName.value = file.name + " (Uploading...)"; 
   
   const publicUrl = await handleCloudinaryUpload(file);
   if (publicUrl) {
-    form.ar_model = publicUrl; // Save cloud URL to form state
+    form.ar_model = publicUrl; 
     arModelDisplayName.value = file.name + " (Uploaded!)";
   } else {
-    arModelDisplayName.value = ""; // Reset if failed
+    arModelDisplayName.value = ""; 
   }
 };
 
@@ -164,8 +171,7 @@ const submitForm = async () => {
       return;
   }
 
-  // Sending pure JSON with URLs. Cloudflare Tunnel only sees this tiny text payload!
-    const payload = {
+  const payload = {
     category_id: form.category_id,
     price: form.price,
     stock: form.stock,
@@ -178,8 +184,6 @@ const submitForm = async () => {
     description_or: form.description_or,
     images: imagePreviews.value, 
     ar_model: form.ar_model ? form.ar_model : null,
-    
-    // ✅ Explicitly tell Laravel we are NOT making a VR request
     vr_request: false, 
   };
 
