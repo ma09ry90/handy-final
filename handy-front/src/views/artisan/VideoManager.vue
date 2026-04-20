@@ -54,7 +54,31 @@ const editVideo = (video) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
-// FIX: Send JSON instead of FormData
+// ✅ Cloudinary Upload Function for Videos
+const handleCloudinaryUpload = async (file) => {
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', uploadPreset);
+
+  try {
+    // We use /video/upload to ensure Cloudinary processes it as a video
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/video/upload`, {
+      method: 'POST',
+      body: formData
+    });
+    const data = await response.json();
+    return data.secure_url; 
+  } catch (error) {
+    console.error("Cloudinary Upload failed", error);
+    alert("Failed to upload video to cloud.");
+    return null;
+  }
+};
+
+// FIX: Upload to Cloudinary first, THEN send JSON to Laravel
 const submitVideo = async () => {
     if (!editMode.value && !form.value.video) {
         return alert("Please select a video file");
@@ -63,7 +87,27 @@ const submitVideo = async () => {
         return alert("Caption is required");
     }
 
-    const data = { ...form.value };
+    let videoUrl = null;
+
+    // If creating a new video, upload it to Cloudinary first
+    if (!editMode.value && form.value.video) {
+        loading.value = true;
+        videoUrl = await handleCloudinaryUpload(form.value.video);
+        
+        if (!videoUrl) {
+            loading.value = false;
+            return; // Stop if the cloud upload failed
+        }
+    }
+
+    // Prepare the JSON payload. Cloudflare Tunnel only sees this tiny text!
+    const data = {
+        caption: form.value.caption,
+        product_url: form.value.product_url,
+        profile_url: form.value.profile_url,
+        video: videoUrl // This will be the Cloudinary URL (or null if just editing text)
+    };
+
     if (editMode.value) {
         data._method = 'PUT';
     }
@@ -148,7 +192,7 @@ onMounted(fetchMyVideos);
                     :disabled="loading"
                     class="bg-emerald-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-emerald-700 transition disabled:opacity-50"
                 >
-                    {{ loading ? 'Saving...' : (editMode ? 'Update Video' : 'Post Video') }}
+                    {{ loading ? 'Uploading to Cloud...' : (editMode ? 'Update Video' : 'Post Video') }}
                 </button>
 
                 <button 
@@ -179,7 +223,7 @@ onMounted(fetchMyVideos);
                 <div class="p-3">
                     <p class="text-xs text-gray-500 truncate">{{ video.caption }}</p>
                     
-                    <!-- External Links Indicators (Escaped for Vite HMR) -->
+                    <!-- External Links Indicators -->
                     <div class="flex gap-2 mt-1">
                         <span v-if="video.product_url" class="text-blue-500 text-[10px]">&#128142; Shop Product</span>
                         <span v-if="video.profile_url" class="text-purple-500 text-[10px]">&#128100; Profile</span>

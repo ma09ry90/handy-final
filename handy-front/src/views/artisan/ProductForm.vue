@@ -3,7 +3,6 @@ import { ref, reactive, onMounted, computed } from 'vue';
 import api from '@/plugins/axios';
 import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { useUploadThing } from '@/lib/uploadthing'; // ✅ Uploadthing added
 
 const { t } = useI18n(); 
 const router = useRouter();
@@ -28,15 +27,32 @@ const form = reactive({
 });
 
 const vrMode = ref('none'); 
-const arModelDisplayName = ref(''); // ✅ Added to safely show file name
+const arModelDisplayName = ref(''); 
 
-// ✅ Initialize Uploadthing
-const { startUpload } = useUploadThing("productMedia", {
-  onClientUploadComplete: (res) => console.log("Upload success", res),
-  onUploadError: (error) => alert(`Upload failed: ${error.message}`)
-});
+// ✅ Cloudinary Upload Function (Replaces Uploadthing)
+const handleCloudinaryUpload = async (file) => {
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
-// ✅ Added missing helper function so Edit mode doesn't crash
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', uploadPreset);
+
+  try {
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
+      method: 'POST',
+      body: formData
+    });
+    const data = await response.json();
+    return data.secure_url; 
+  } catch (error) {
+    console.error("Cloudinary Upload failed", error);
+    alert("Failed to upload file to cloud.");
+    return null;
+  }
+};
+
+// ✅ Helper function so Edit mode doesn't crash
 const getImageUrl = (path) => {
   if (!path) return '';
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
@@ -87,7 +103,7 @@ const fetchProduct = async () => {
     if (data.basePath && data.versions[0]?.ar_model_path) {
         vrMode.value = 'upload';
         form.ar_model = data.versions[0].ar_model_path;
-        arModelDisplayName.value = "Existing 3D Model"; // ✅ Show safe text instead of crashing on .name
+        arModelDisplayName.value = "Existing 3D Model"; 
     }
 
   } catch (e) {
@@ -97,16 +113,16 @@ const fetchProduct = async () => {
   }
 };
 
-// ✅ Updated: Uploads directly to cloud, pushes URL to preview
+// ✅ Updated: Uploads directly to Cloudinary, pushes URL to preview
 const handleFileChange = async (event) => {
   const files = Array.from(event.target.files);
   if (imagePreviews.value.length + files.length > 5) return;
   
-  const result = await startUpload(files);
-  if (result) {
-    result.forEach(file => {
-      imagePreviews.value.push(file.url); // Push cloud URL directly
-    });
+  for (const file of files) {
+    const publicUrl = await handleCloudinaryUpload(file);
+    if (publicUrl) {
+      imagePreviews.value.push(publicUrl); // Push cloud URL directly
+    }
   }
   event.target.value = ''; // Reset input
 };
@@ -115,16 +131,19 @@ const removeImage = (index) => {
   imagePreviews.value.splice(index, 1);
 };
 
-// ✅ Updated: Uploads AR model to cloud, saves URL
+// ✅ Updated: Uploads AR model to Cloudinary, saves URL
 const handleArModelChange = async (event) => {
   const file = event.target.files[0];
   if (!file) return;
   
-  arModelDisplayName.value = file.name; // Save name for display
+  arModelDisplayName.value = file.name + " (Uploading...)"; // Save name for display
   
-  const result = await startUpload([file]);
-  if (result && result[0]) {
-    form.ar_model = result[0].url; // Save cloud URL to form state
+  const publicUrl = await handleCloudinaryUpload(file);
+  if (publicUrl) {
+    form.ar_model = publicUrl; // Save cloud URL to form state
+    arModelDisplayName.value = file.name + " (Uploaded!)";
+  } else {
+    arModelDisplayName.value = ""; // Reset if failed
   }
 };
 
@@ -138,7 +157,7 @@ const submitForm = async () => {
       return;
   }
 
-  // Sending pure JSON with URLs. Ngrok only sees this tiny text payload!
+  // Sending pure JSON with URLs. Cloudflare Tunnel only sees this tiny text payload!
   const payload = {
     category_id: form.category_id,
     price: form.price,
@@ -325,7 +344,6 @@ const submitForm = async () => {
                       @change="handleArModelChange" 
                       class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200 cursor-pointer"
                   >
-                  <!-- ✅ Fixed display text to not crash on URL strings -->
                   <p v-if="form.ar_model" class="text-green-600 text-xs mt-1 font-medium">
                       Selected: {{ arModelDisplayName || 'Uploaded successfully' }}
                   </p>
