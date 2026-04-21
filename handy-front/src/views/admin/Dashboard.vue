@@ -867,8 +867,10 @@ onMounted(async () => {
                                 </thead>
                                 <tbody class="divide-y divide-gray-100">
                                     <tr v-for="product in products.data" :key="product.id" class="hover:bg-gray-50">
-                                        <td class="px-6 py-4"><p class="text-sm font-medium text-gray-900 truncate max-w-[200px]">{{ product.name }}</p></td>
-                                        <td class="px-6 py-4 text-sm text-gray-600">{{ product.user?.name || 'N/A' }}</td>
+                                        <td class="px-6 py-4">
+                                            <p class="text-sm font-medium text-gray-900 truncate max-w-[200px]">{{ product.name }}</p>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-600">{{ product.seller_name || 'N/A' }}</td>
                                         <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ product.price }} ETB</td>
                                         <td class="px-6 py-4">
                                             <span :class="[
