@@ -20,13 +20,14 @@ export const useAuthStore = defineStore('auth', {
       return !!state.token;
     },
     
-    // ✅ ADDED: This getter is required for the Router Navigation Guard
     userRole: function (state) {
-      return state.user?.role_id || null;
+      // FIX: Normalize to number — API can return string "4" or number 4
+      // Without this, router guard's "userRole === 4" fails on type mismatch
+      const roleId = state.user?.role_id;
+      return roleId != null ? Number(roleId) : null;
     },
 
     hasPermission: (state) => (permissionName) => {
-      // Fixed syntax: Added missing logical OR ()
       return state.permissions.includes(permissionName) || state.permissions.includes('manage_all');
     }
   },
@@ -42,8 +43,6 @@ export const useAuthStore = defineStore('auth', {
       if (storedUser) {
         try {
           this.user = JSON.parse(storedUser);
-
-          // Fixed syntax: Added missing logical OR ()
           this.permissions = this.user?.permissions || [];
 
           if (this.user && this.user.locale) {
@@ -65,8 +64,6 @@ export const useAuthStore = defineStore('auth', {
 
         this.token = response.data.access_token;
         this.user = response.data.user;
-
-        // Fixed syntax: Added missing logical OR ()
         this.permissions = response.data.user.permissions || [];
 
         localStorage.setItem('token', this.token);
@@ -84,16 +81,34 @@ export const useAuthStore = defineStore('auth', {
           console.warn('Cart merge failed (non-critical):', cartError);
         }
 
-        // Redirect Logic
-        const isAdmin = this.permissions.some(p => 
-          ['manage_all', 'assign_driver', 'approve_withdrawal', 'manage_products'].includes(p)
-        );
+        // FIX: Use normalized number for role matching
+        const roleId = Number(this.user.role_id);
 
-        if (isAdmin) {
+        // FIX: All seeder permission names included — no mismatches
+        const isAdmin = this.permissions.some(p => [
+          'manage_all',
+          'approve_delivery_person',
+          'assign_driver',
+          'approve_withdrawal',
+          'manage_products',
+          'view_orders',
+          'manage_delivery_status',
+          'view_transactions',
+          'manage_escrow',
+          'hide_product',
+          'block_artisan',
+          'handle_reports',
+          'view_reports',
+          'manage_users',
+          'manage_settings',
+        ].includes(p));
+
+        // FIX: role_id 4 = admin (was checking 1 = buyer)
+        if (roleId === 4 && isAdmin) {
           router.push('/admin/dashboard');
-        } else if (this.user.role_id === 2) {
+        } else if (roleId === 2) {
           router.push('/artisan/dashboard');
-        } else if (this.user.role_id === 3) {
+        } else if (roleId === 3) {
           router.push('/delivery/dashboard');
         } else {
           router.push('/');
@@ -108,7 +123,6 @@ export const useAuthStore = defineStore('auth', {
           const status = errorResponse.status;
           const data = errorResponse.data;
 
-          // Fixed syntax: Added missing logical OR ()
           if (status === 422 || status === 401) {
             if (data && data.errors) {
               this.errors = data.errors;
@@ -129,6 +143,7 @@ export const useAuthStore = defineStore('auth', {
         this.isLoading = false;
       }
     },
+
     logout: async function () {
       try {
         await api.post('/logout');
