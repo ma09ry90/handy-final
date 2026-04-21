@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import api from '@/plugins/axios'
@@ -64,6 +64,16 @@ const txt = computed(() => ({
   login_here: t('delivery_reg.login_here') || 'Log in here',
   success_title: t('delivery_reg.success_title') || 'Application Submitted!',
   success_msg: t('delivery_reg.success_msg') || 'Your application is under review.',
+  terms_label: t('delivery_reg.terms_label') || 'I have read and agree to the',
+  terms_link: t('delivery_reg.terms_link') || 'Terms and Conditions',
+  privacy_link: t('delivery_reg.privacy_link') || 'Privacy Policy',
+  delivery_guide_link: t('delivery_reg.delivery_guide_link') || 'Delivery Personnel Guidelines',
+  terms_required: t('delivery_reg.terms_required') || 'You must agree to the terms and conditions to proceed',
+  map_title: t('delivery_reg.map_title') || 'Pin Your Exact Location on Map',
+  map_desc: t('delivery_reg.map_desc') || 'Click on the map or drag the marker to set your exact location. Map auto-adjusts when you select city/subcity.',
+  map_locate: t('delivery_reg.map_locate') || 'Locate Me',
+  map_reset: t('delivery_reg.map_reset') || 'Reset',
+  map_required: t('delivery_reg.map_required') || 'Please select your location on the map',
   validation: {
     required: t('delivery_reg.validation.required') || 'This field is required',
     email_invalid: t('delivery_reg.validation.email_invalid') || 'Please enter a valid email',
@@ -112,6 +122,13 @@ const form = ref({
   national_id_document: null,
   driving_license_document: null,
   vehicle_registration_document: null,
+
+  // Map Coordinates
+  latitude: null,
+  longitude: null,
+
+  // Terms
+  terms_accepted: false,
 })
 
 // Address Logic
@@ -119,35 +136,265 @@ const cities = ref([]);
 const subcities = ref([]);
 const woredas = ref([]);
 
+// ============================================
+// MAP REFS & CONFIG (same pattern as artisan)
+// ============================================
+const mapContainer = ref(null);
+let map = null;
+let marker = null;
+const geoLocateMsg = ref('');
+const isSecureOrigin = ref(window.isSecureContext);
+
+const defaultLat = 9.0250;
+const defaultLng = 38.7469;
+
+// PREDEFINED COORDINATES FOR ETHIOPIAN CITIES
+const cityCoords = {
+    'addis ababa': { lat: 9.0250, lng: 38.7469, zoomWithSubcities: 12, zoomWithoutSubcities: 13 },
+    'adir dar': { lat: 11.5760, lng: 37.3908, zoomWithSubcities: 12, zoomWithoutSubcities: 14 },
+    'bahir dar': { lat: 11.5760, lng: 37.3908, zoomWithSubcities: 12, zoomWithoutSubcities: 14 },
+    'hawassa': { lat: 7.0603, lng: 38.4776, zoomWithSubcities: 12, zoomWithoutSubcities: 14 },
+    'jimma': { lat: 7.6694, lng: 36.8350, zoomWithSubcities: 12, zoomWithoutSubcities: 14 },
+    'mekelle': { lat: 13.4967, lng: 39.4753, zoomWithSubcities: 12, zoomWithoutSubcities: 14 },
+    'dire dawa': { lat: 9.5937, lng: 41.8661, zoomWithSubcities: 12, zoomWithoutSubcities: 14 },
+    'adama': { lat: 8.5414, lng: 39.2703, zoomWithSubcities: 12, zoomWithoutSubcities: 14 },
+    'gondar': { lat: 12.6000, lng: 37.4500, zoomWithSubcities: 12, zoomWithoutSubcities: 14 },
+    'dessie': { lat: 11.1361, lng: 39.6394, zoomWithSubcities: 12, zoomWithoutSubcities: 14 },
+    'debre markos': { lat: 10.3380, lng: 37.7244, zoomWithSubcities: 12, zoomWithoutSubcities: 14 },
+    'debre birhan': { lat: 9.6810, lng: 39.5140, zoomWithSubcities: 12, zoomWithoutSubcities: 14 },
+    'shashamane': { lat: 7.2040, lng: 38.5950, zoomWithSubcities: 12, zoomWithoutSubcities: 14 },
+    'arbaminch': { lat: 6.0333, lng: 37.5500, zoomWithSubcities: 12, zoomWithoutSubcities: 14 },
+    'harar': { lat: 9.3138, lng: 42.1181, zoomWithSubcities: 12, zoomWithoutSubcities: 15 },
+    'jijiga': { lat: 9.3500, lng: 42.8000, zoomWithSubcities: 12, zoomWithoutSubcities: 14 },
+    'nekemte': { lat: 9.0819, lng: 36.5561, zoomWithSubcities: 12, zoomWithoutSubcities: 14 },
+};
+
+// PREDEFINED COORDINATES FOR ADDIS ABABA SUBCITIES
+const subcityCoords = {
+    'addis ketema': { lat: 9.0200, lng: 38.7420 },
+    'lideta': { lat: 9.0150, lng: 38.7350 },
+    'kirkos': { lat: 9.0150, lng: 38.7550 },
+    'arada': { lat: 9.0300, lng: 38.7500 },
+    'yeka': { lat: 9.0400, lng: 38.7900 },
+    'bole': { lat: 8.9800, lng: 38.7900 },
+    'nifas silk-lafto': { lat: 8.9800, lng: 38.7300 },
+    'kolfe keranio': { lat: 8.9500, lng: 38.7100 },
+    'akaki kality': { lat: 8.9000, lng: 38.7800 },
+    'gulele': { lat: 9.0500, lng: 38.7200 },
+    'chafe': { lat: 8.9600, lng: 38.7600 },
+};
+
+// Helper: Get coordinates for a city
+const getCityCoords = (city, hasSubcities) => {
+    if (city.latitude && city.longitude) {
+        return {
+            lat: parseFloat(city.latitude),
+            lng: parseFloat(city.longitude),
+            zoom: hasSubcities ? 12 : 14
+        };
+    }
+    const nameEn = (city.name_en || city.name || '').toLowerCase().trim();
+    const nameAm = (city.name_am || '').toLowerCase().trim();
+    const nameOr = (city.name_or || '').toLowerCase().trim();
+    for (const [key, coords] of Object.entries(cityCoords)) {
+        if (nameEn.includes(key) || nameAm === key || nameOr === key || key.includes(nameEn)) {
+            return {
+                lat: coords.lat,
+                lng: coords.lng,
+                zoom: hasSubcities ? coords.zoomWithSubcities : coords.zoomWithoutSubcities
+            };
+        }
+    }
+    return { lat: defaultLat, lng: defaultLng, zoom: hasSubcities ? 12 : 13 };
+};
+
+// Helper: Get coordinates for a subcity
+const getSubcityCoords = (subcity) => {
+    if (subcity.latitude && subcity.longitude) {
+        return {
+            lat: parseFloat(subcity.latitude),
+            lng: parseFloat(subcity.longitude),
+            zoom: 15
+        };
+    }
+    const nameEn = (subcity.name_en || subcity.name || '').toLowerCase().trim();
+    const nameAm = (subcity.name_am || '').toLowerCase().trim();
+    const nameOr = (subcity.name_or || '').toLowerCase().trim();
+    for (const [key, coords] of Object.entries(subcityCoords)) {
+        if (nameEn.includes(key) || nameAm === key || nameOr === key || key.includes(nameEn)) {
+            return { lat: coords.lat, lng: coords.lng, zoom: 15 };
+        }
+    }
+    return { lat: defaultLat + 0.01, lng: defaultLng + 0.01, zoom: 14 };
+};
+
 onMounted(async () => {
   try {
     const res = await api.get('/cities');
     cities.value = res.data;
   } catch (e) { console.error(e); }
+
+  await nextTick();
+  initMap();
 });
 
+// ============================================
+// MAP FUNCTIONS (same pattern as artisan)
+// ============================================
+const initMap = () => {
+    if (!mapContainer.value) return;
+
+    map = L.map(mapContainer.value).setView([defaultLat, defaultLng], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19,
+    }).addTo(map);
+
+    const defaultIcon = L.icon({
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+
+    marker = L.marker([defaultLat, defaultLng], {
+        icon: defaultIcon,
+        draggable: true
+    }).addTo(map);
+
+    form.value.latitude = defaultLat;
+    form.value.longitude = defaultLng;
+
+    map.on('click', function(e) {
+        const { lat, lng } = e.latlng;
+        marker.setLatLng([lat, lng]);
+        form.value.latitude = lat;
+        form.value.longitude = lng;
+        updateCoordinateDisplay();
+    });
+
+    marker.on('dragend', function(e) {
+        const { lat, lng } = e.target.getLatLng();
+        form.value.latitude = lat;
+        form.value.longitude = lng;
+        updateCoordinateDisplay();
+    });
+};
+
+const updateCoordinateDisplay = () => {
+    form.value.latitude = parseFloat(form.value.latitude.toFixed(6));
+    form.value.longitude = parseFloat(form.value.longitude.toFixed(6));
+};
+
+const flyToLocation = (lat, lng, zoom) => {
+    if (!map || !marker) return;
+    map.flyTo([lat, lng], zoom, { duration: 1.5 });
+    marker.setLatLng([lat, lng]);
+    form.value.latitude = parseFloat(lat.toFixed(6));
+    form.value.longitude = parseFloat(lng.toFixed(6));
+};
+
+const locateMe = () => {
+    geoLocateMsg.value = '';
+    if (!navigator.geolocation) {
+        geoLocateMsg.value = 'Geolocation is not supported by your browser. Please click on the map to set your location.';
+        return;
+    }
+    if (!window.isSecureContext) {
+        geoLocateMsg.value = 'Location access requires a secure connection (HTTPS). Please click on the map to set your location manually.';
+        return;
+    }
+    geoLocateMsg.value = 'Detecting your location...';
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            flyToLocation(lat, lng, 16);
+            geoLocateMsg.value = '';
+        },
+        (error) => {
+            let msg = 'Could not get your location. ';
+            switch (error.code) {
+                case error.PERMISSION_DENIED:
+                    msg += 'Location permission was denied. Please click on the map to set your location.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    msg += 'Location information unavailable. Please click on the map to set your location.';
+                    break;
+                case error.TIMEOUT:
+                    msg += 'Location request timed out. Please click on the map to set your location.';
+                    break;
+                default:
+                    msg += 'Please click on the map to set your location.';
+            }
+            geoLocateMsg.value = msg;
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+};
+
+const resetMap = () => {
+    if (map && marker) {
+        flyToLocation(defaultLat, defaultLng, 13);
+        geoLocateMsg.value = '';
+    }
+};
+
+// ============================================
+// WATCHERS (map flies on city/subcity change)
+// ============================================
 watch(() => form.value.city_id, async (newVal) => {
   form.value.subcity_id = null;
   form.value.woreda_id = null;
   subcities.value = [];
   woredas.value = [];
+
   if (!newVal) return;
+
   try {
-    const subRes = await api.get(`/cities/${newVal}/subcities`);
+    const [subRes, woredaRes] = await Promise.all([
+      api.get(`/cities/${newVal}/subcities`),
+      api.get(`/cities/${newVal}/woredas`)
+    ]);
+
     subcities.value = subRes.data;
-    const woredaRes = await api.get(`/cities/${newVal}/woredas`);
     woredas.value = woredaRes.data;
-  } catch (e) { console.error("Error loading location data", e); }
+
+    // Fly map to selected city
+    const selectedCity = cities.value.find(c => c.id == newVal);
+    if (selectedCity) {
+      const hasSubcities = subcities.value.length > 0;
+      const coords = getCityCoords(selectedCity, hasSubcities);
+      flyToLocation(coords.lat, coords.lng, coords.zoom);
+    }
+  } catch (e) {
+    console.error("Error loading location data", e);
+  }
 });
 
 watch(() => form.value.subcity_id, async (newVal) => {
   form.value.woreda_id = null;
   woredas.value = [];
+
   if (!newVal) return;
+
   try {
     const res = await api.get(`/cities/${form.value.city_id}/woredas?subcity_id=${newVal}`);
     woredas.value = res.data;
-  } catch (e) { console.error("Error loading woredas", e); }
+
+    // Fly map to selected subcity
+    const selectedSubcity = subcities.value.find(s => s.id == newVal);
+    if (selectedSubcity) {
+      const coords = getSubcityCoords(selectedSubcity);
+      flyToLocation(coords.lat, coords.lng, coords.zoom);
+    }
+  } catch (e) {
+    console.error("Error loading woredas", e);
+  }
 });
 
 // Image Validation Config
@@ -223,7 +470,6 @@ const removeImage = () => {
   form.value.profile_image = null; imagePreview.value = null; imageError.value = ''
 }
 
-// Generic handler for document files
 const handleFileChange = (event, fieldName) => {
   const file = event.target.files[0];
   if (file) { form.value[fieldName] = file; }
@@ -249,6 +495,11 @@ const validateForm = () => {
   if (!form.value.street.trim()) localErrors.street = [txt.value.validation.required]
   
   if (!form.value.profile_image) imageError.value = txt.value.validation.image_required
+
+  // Terms & Map validation
+  if (!form.value.terms_accepted) localErrors.terms_accepted = [txt.value.terms_required]
+  if (!form.value.latitude || !form.value.longitude) localErrors.map_location = [txt.value.map_required]
+
   return localErrors
 }
 
@@ -265,7 +516,7 @@ const submitForm = async () => {
     
     // Append Text Fields
     Object.keys(form.value).forEach(key => {
-      if (!['profile_image', 'national_id_document', 'driving_license_document', 'vehicle_registration_document'].includes(key) && form.value[key]) {
+      if (!['profile_image', 'national_id_document', 'driving_license_document', 'vehicle_registration_document', 'terms_accepted', 'latitude', 'longitude'].includes(key) && form.value[key]) {
         formData.append(key, form.value[key])
       }
     })
@@ -276,6 +527,9 @@ const submitForm = async () => {
     
     // Append Locale
     formData.append('locale', locale.value)
+
+    // Append role_id for delivery personnel
+    formData.append('role_id', 3)
     
     // Append Profile Image
     if (form.value.profile_image) formData.append('profile_image', form.value.profile_image)
@@ -284,6 +538,10 @@ const submitForm = async () => {
     if (form.value.national_id_document) formData.append('national_id_document', form.value.national_id_document)
     if (form.value.driving_license_document) formData.append('driving_license_document', form.value.driving_license_document)
     if (form.value.vehicle_registration_document) formData.append('vehicle_registration_document', form.value.vehicle_registration_document)
+
+    // Append Map Coordinates
+    if (form.value.latitude) formData.append('latitude', form.value.latitude)
+    if (form.value.longitude) formData.append('longitude', form.value.longitude)
     
     await api.post('/register/delivery', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
@@ -296,11 +554,9 @@ const submitForm = async () => {
       errors.value = error.response.data.errors;
       window.scrollTo(0, 0);
     } else {
-      // Clean up the error message to hide ugly SQL text from the user
       let errorMsg = 'An error occurred during registration. Please try again.';
       
       if (error.response?.data?.message) {
-        // If it's the duplicate key error, give a specific hint
         if (error.response.data.message.includes('Duplicate entry') && error.response.data.message.includes('phone_number')) {
           errorMsg = 'This phone number is already registered. Please use a different number or log in.';
         } else {
@@ -577,6 +833,63 @@ const submitForm = async () => {
                 <input v-model="form.landmark" type="text" :class="inputClass('landmark')" placeholder="Nearby famous place">
               </div>
             </div>
+
+            <!-- ─── MAP SECTION (same pattern as artisan) ─── -->
+            <div class="space-y-3" :class="{'border border-red-500 rounded-lg p-3': errors.latitude || errors.longitude || errors.map_location}">
+              <div class="flex items-center justify-between">
+                <label class="block text-sm font-medium text-gray-700">
+                  <span class="text-red-500">*</span> {{ txt.map_title }}
+                </label>
+                <div class="flex gap-2">
+                  <button v-if="isSecureOrigin" type="button" @click="locateMe"
+                    class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 rounded-full hover:bg-green-100 transition-colors">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    {{ txt.map_locate }}
+                  </button>
+                  <button type="button" @click="resetMap"
+                    class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    {{ txt.map_reset }}
+                  </button>
+                </div>
+              </div>
+
+              <p class="text-xs text-gray-500">{{ txt.map_desc }}</p>
+
+              <!-- Geolocation Message -->
+              <div v-if="geoLocateMsg" class="flex items-start gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+                <svg class="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                </svg>
+                <span class="text-xs text-amber-700">{{ geoLocateMsg }}</span>
+              </div>
+
+              <!-- Map Container -->
+              <div ref="mapContainer" class="w-full h-[300px] md:h-[350px] rounded-lg border-2 border-gray-200 z-0"></div>
+
+              <!-- Coordinate Display -->
+              <div class="flex flex-wrap gap-4 mt-2">
+                <div class="flex items-center gap-2 text-sm">
+                  <span class="px-2 py-1 bg-blue-50 text-blue-700 rounded font-mono text-xs">
+                    Lat: {{ form.latitude || '9.025000' }}
+                  </span>
+                </div>
+                <div class="flex items-center gap-2 text-sm">
+                  <span class="px-2 py-1 bg-blue-50 text-blue-700 rounded font-mono text-xs">
+                    Lng: {{ form.longitude || '38.746900' }}
+                  </span>
+                </div>
+              </div>
+
+              <p v-if="errors.latitude" class="text-red-500 text-xs mt-1">{{ errors.latitude[0] }}</p>
+              <p v-if="errors.longitude" class="text-red-500 text-xs mt-1">{{ errors.longitude[0] }}</p>
+              <p v-if="errors.map_location" class="text-red-500 text-xs mt-1">{{ errors.map_location[0] }}</p>
+            </div>
           </div>
 
           <!-- Section 4: Documents -->
@@ -604,12 +917,63 @@ const submitForm = async () => {
             </div>
           </div>
 
-          <!-- Terms -->
+          <!-- Background Check Notice -->
           <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 flex items-start gap-3">
             <svg class="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
             </svg>
             <p class="text-sm text-gray-600">{{ txt.terms_text }}</p>
+          </div>
+
+          <!-- Section 5: Terms & Conditions -->
+          <div class="space-y-4">
+            <h3 class="text-lg font-semibold text-gray-800 border-l-4 border-yellow-400 pl-3">Terms & Conditions</h3>
+
+            <div class="p-4 bg-gray-50 rounded-lg border" :class="{'border-red-500': errors.terms_accepted}">
+              <label class="flex items-start cursor-pointer gap-3">
+                <input type="checkbox" v-model="form.terms_accepted"
+                  class="mt-1 w-5 h-5 text-green-600 rounded border-gray-300 focus:ring-green-500 cursor-pointer">
+                <span class="text-sm text-gray-700 leading-relaxed">
+                  {{ txt.terms_label }}
+                  <a href="/terms-and-conditions" target="_blank" class="text-green-600 hover:text-green-800 font-medium underline underline-offset-2">
+                    {{ txt.terms_link }}
+                  </a>,
+                  <a href="/privacy-policy" target="_blank" class="text-green-600 hover:text-green-800 font-medium underline underline-offset-2">
+                    {{ txt.privacy_link }}
+                  </a>, and
+                  <a href="/delivery-guidelines" target="_blank" class="text-green-600 hover:text-green-800 font-medium underline underline-offset-2">
+                    {{ txt.delivery_guide_link }}
+                  </a>.
+                  I understand that my registration will be reviewed and I must comply with all platform rules and regulations.
+                  <span class="text-red-500">*</span>
+                </span>
+              </label>
+              <p v-if="errors.terms_accepted" class="text-red-500 text-xs mt-2 ml-8">{{ errors.terms_accepted[0] }}</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <a href="/terms-and-conditions" target="_blank"
+                class="flex items-center gap-2 p-3 text-sm text-gray-600 bg-white border rounded-lg hover:border-green-300 hover:text-green-700 transition-colors">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                {{ txt.terms_link }}
+              </a>
+              <a href="/privacy-policy" target="_blank"
+                class="flex items-center gap-2 p-3 text-sm text-gray-600 bg-white border rounded-lg hover:border-green-300 hover:text-green-700 transition-colors">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+                {{ txt.privacy_link }}
+              </a>
+              <a href="/delivery-guidelines" target="_blank"
+                class="flex items-center gap-2 p-3 text-sm text-gray-600 bg-white border rounded-lg hover:border-green-300 hover:text-green-700 transition-colors">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                </svg>
+                {{ txt.delivery_guide_link }}
+              </a>
+            </div>
           </div>
 
           <!-- Submit -->
@@ -631,3 +995,7 @@ const submitForm = async () => {
     </main>
   </div>
 </template>
+
+<style>
+@import 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+</style>

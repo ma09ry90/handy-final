@@ -49,6 +49,21 @@ const router = createRouter({
       name: 'DeliveryRegister',
       component: () => import('../views/auth/register/DeliveryRegister.vue')
     },
+    {
+      path: '/register/delivery/terms-and-conditions',
+      name: 'terms',
+      component: () => import('@/views/terms/delivery/TermsAndConditions.vue')
+    },
+    {
+      path: '/register/delivery/privacy-policy',
+      name: 'privacy',
+      component: () => import('@/views/terms/delivery/privacy-policy.vue')
+    },
+    {
+      path: '/delivery-guidelines',
+      name: 'delivery-guidelines',
+      component: () => import('@/views/terms/delivery/delivery-guidelines.vue')
+    },
 
     // --- Reels Feed (Accessible by Buyers & Artisans) ---
     {
