@@ -159,7 +159,7 @@ onMounted(fetchVideos);
         
         <!-- Video Element -->
         <video 
-            :src="getMediaUrl(video.video_url, 'video')" 
+            :src="getMediaUrl(video.video_path, 'video')" 
             loop 
             :muted="globalMuted" 
             playsinline 
