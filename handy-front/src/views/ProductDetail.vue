@@ -97,6 +97,11 @@ const formatDate = (dateStr) => {
 
 // Scroll to reviews if hash
 onMounted(async () => {
+    // Check if we need to scroll (from hash or from card click)
+    if (route.hash === '#reviews') {
+      shouldScrollToReviews.value = true;
+    }
+
     try {
         const { data } = await api.get(`/products/${route.params.id}`);
         product.value = data;
@@ -105,10 +110,10 @@ onMounted(async () => {
         router.push('/');
     } finally {
         loading.value = false;
-        if (route.hash === '#reviews') {
-            setTimeout(() => {
-                document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' });
-            }, 300);
+        // After loading is done, wait for render then scroll
+        if (shouldScrollToReviews.value) {
+          await nextTick();
+          scrollToReviews();
         }
     }
 });
