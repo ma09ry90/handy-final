@@ -1,21 +1,8 @@
 <script setup>
-import { onMounted } from 'vue'; // ✅ FIX: Added this import
-import { useAuthStore } from '@/stores/auth';
-
-const authStore = useAuthStore();
-
-// Check if user session is valid on app load
-onMounted(async () => {
-    // If we have user data in storage, verify it with the server
-    // This keeps the user logged in if they refresh the page
-    if (authStore.isAuthenticated) {
-        try {
-            await authStore.fetchUser();
-        } catch (e) {
-            console.log("Session invalid or expired");
-        }
-    }
-});
+// Empty — auth initialization is in main.js, not here.
+// The old fetchUser() call was breaking things because:
+// 1. It doesn't exist in the auth store
+// 2. It runs in onMounted, which is AFTER the router guard
 </script>
 
 <template>

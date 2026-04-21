@@ -21,8 +21,6 @@ export const useAuthStore = defineStore('auth', {
     },
     
     userRole: function (state) {
-      // FIX: Normalize to number — API can return string "4" or number 4
-      // Without this, router guard's "userRole === 4" fails on type mismatch
       const roleId = state.user?.role_id;
       return roleId != null ? Number(roleId) : null;
     },
@@ -81,10 +79,8 @@ export const useAuthStore = defineStore('auth', {
           console.warn('Cart merge failed (non-critical):', cartError);
         }
 
-        // FIX: Use normalized number for role matching
         const roleId = Number(this.user.role_id);
 
-        // FIX: All seeder permission names included — no mismatches
         const isAdmin = this.permissions.some(p => [
           'manage_all',
           'approve_delivery_person',
@@ -103,7 +99,6 @@ export const useAuthStore = defineStore('auth', {
           'manage_settings',
         ].includes(p));
 
-        // FIX: role_id 4 = admin (was checking 1 = buyer)
         if (roleId === 4 && isAdmin) {
           router.push('/admin/dashboard');
         } else if (roleId === 2) {
