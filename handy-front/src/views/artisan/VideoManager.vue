@@ -78,7 +78,7 @@ const handleCloudinaryUpload = async (file) => {
   }
 };
 
-// FIX: Upload to Cloudinary first, THEN send JSON to Laravel
+// ✅ FIXED: Correctly handles POST for new videos and PUT for editing
 const submitVideo = async () => {
     if (!editMode.value && !form.value.video) {
         return alert("Please select a video file");
@@ -114,7 +114,11 @@ const submitVideo = async () => {
 
     try {
         loading.value = true;
-        await api.post(`/artisan/videos/${editId.value}`, data, {
+        
+        // ✅ THE FIX: If editing, use ID. If creating new, use base URL.
+        const url = editMode.value ? `/artisan/videos/${editId.value}` : '/artisan/videos';
+        
+        await api.post(url, data, {
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
         });
         

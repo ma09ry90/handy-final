@@ -16,18 +16,29 @@ const loadingComments = ref(false);
 // Mobile Audio State (Start muted to allow autoplay)
 const globalMuted = ref(true);
 
-// --- FIX: Image URL Helper ---
-// This handles converting relative paths to full URLs and strips /api automatically
-const getImageUrl = (path) => {
+// --- FIX: Universal Media URL Helper ---
+// Automatically optimizes Cloudinary URLs for mobile browsers
+const getMediaUrl = (path, type = 'image') => {
     if (!path) return null;
     
-    // 1. If it's already a full URL (http...), return it as-is
-    if (path.startsWith('http')) return path;
+    // 1. If it's already a full URL (like Cloudinary)
+    if (path.startsWith('http')) {
+        if (path.includes('res.cloudinary.com')) {
+            if (type === 'video') {
+                // vc_auto: optimizes video codec for mobile
+                // q_auto: compresses to save mobile data
+                return path.replace('/upload/', '/upload/vc_auto,q_auto/');
+            } else {
+                // f_auto: converts to WebP (best for mobile images)
+                // q_auto: compresses to save mobile data
+                return path.replace('/upload/', '/upload/f_auto,q_auto/');
+            }
+        }
+        return path; // Return normal URLs as-is
+    }
 
-    // 2. Construct URL
+    // 2. If it's a local relative path (e.g., old uploads)
     const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
-    
-    // Strip '/api' from the end if present, then add path
     const cleanBase = baseUrl.replace(/\/api$/, '');
     return `${cleanBase}/${path}`;
 };
@@ -99,7 +110,6 @@ const toggleMute = () => {
 
 // --- MOBILE VIDEO LOGIC ---
 
-// Fallback: If observer fails, clicking the video toggles play/pause
 const togglePlay = (event) => {
     const video = event.target;
     if (video.paused) {
@@ -147,9 +157,9 @@ onMounted(fetchVideos);
          class="h-screen w-full snap-start relative flex items-center justify-center reel-container bg-black"
          :data-id="video.id">
         
-        <!-- Video Element (Mobile Attributes Added) -->
+        <!-- Video Element -->
         <video 
-            :src="getImageUrl(video.video_url)" 
+            :src="getMediaUrl(video.video_url, 'video')" 
             loop 
             :muted="globalMuted" 
             playsinline 
@@ -170,7 +180,8 @@ onMounted(fetchVideos);
             <!-- Shop Logo -->
             <router-link :to="`/artisan/shop/${video.shop?.id}`" class="relative flex flex-col items-center">
                 <div class="w-10 h-10 rounded-full border-2 border-white overflow-hidden bg-gray-800 flex items-center justify-center">
-                    <img v-if="video.shop?.logo" :src="getImageUrl(video.shop.logo)" class="w-full h-full object-cover" alt="Shop">
+                    <!-- ✅ Updated to getMediaUrl -->
+                    <img v-if="video.shop?.logo" :src="getMediaUrl(video.shop.logo, 'image')" class="w-full h-full object-cover" alt="Shop">
                     <span v-else class="text-white font-bold text-sm">{{ video.shop?.name?.charAt(0) }}</span>
                 </div>
             </router-link>
@@ -199,14 +210,15 @@ onMounted(fetchVideos);
                     <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
                 </svg>
             </button>
+            
             <!-- Mute -->
             <button @click="toggleMute" class="flex flex-col items-center active:scale-125 transition-transform mt-2">
                  <svg v-if="globalMuted" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-white drop-shadow-lg">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 9.75L19.5 12m0 0l2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6l2.25-2.25L6.75 9.75H4.5v4.5h2.25l4.5 4.5V9.75z" />
-                </svg>
+                 </svg>
                  <svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-white drop-shadow-lg">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
-                </svg>
+                 </svg>
             </button>
         </div>
 
