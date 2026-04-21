@@ -167,7 +167,7 @@ const fetchProducts = async (page = 1) => {
 const toggleHideProduct = async (productId) => {
     try {
         const res = await api.post(`/admin/products/${productId}/toggle-hide`);
-        const action = res.data.status === 'hidden' ? 'hidden' : 'unhidden';
+        const action = res.data.status === 'hidden_by_admin' ? 'hidden' : 'unhidden';
         alert(`Product ${action}.`);
         await fetchProducts(products.value.current_page);
     } catch (e) { alert(e.response?.data?.message || "Failed to toggle product."); }
@@ -870,20 +870,20 @@ onMounted(async () => {
                                         <td class="px-6 py-4">
                                             <p class="text-sm font-medium text-gray-900 truncate max-w-[200px]">{{ product.name }}</p>
                                         </td>
-                                        <td class="px-6 py-4 text-sm text-gray-600">{{ product.seller_name || 'N/A' }}</td>
+                                        <td class="px-6 py-4 text-sm text-gray-600">{{ product.artisan?.name || 'N/A' }}</td>
                                         <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ product.price }} ETB</td>
                                         <td class="px-6 py-4">
                                             <span :class="[
                                                 'inline-block px-2 py-1 rounded text-xs font-semibold',
                                                 product.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'
-                                            ]">{{ product.status }}</span>
+                                            ]">{{ product.status === 'hidden_by_admin' ? 'Hidden' : product.status }}</span>
                                         </td>
                                         <td class="px-6 py-4 text-sm text-gray-500">{{ new Date(product.created_at).toLocaleDateString() }}</td>
                                         <td class="px-6 py-4 text-center">
                                             <button v-if="canHideProduct" @click="toggleHideProduct(product.id)" :class="[
                                                 'px-3 py-1.5 rounded-lg text-xs font-semibold transition',
-                                                product.status === 'hidden' ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                            ]">{{ product.status === 'hidden' ? 'Unhide' : 'Hide' }}</button>
+                                                product.status === 'hidden_by_admin' ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            ]">{{ product.status === 'hidden_by_admin' ? 'Unhide' : 'Hide' }}</button>
                                         </td>
                                     </tr>
                                     <tr v-if="!products.data || products.data.length === 0"><td colspan="6" class="px-6 py-12 text-center text-gray-400 text-sm">No products found.</td></tr>
