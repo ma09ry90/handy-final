@@ -4,6 +4,25 @@ import router from '@/router';
 import i18n from '@/plugins/i18n';
 import { useCartStore } from '@/stores/cart';
 
+// All known admin permission names from your seeder
+const ADMIN_PERMISSIONS = [
+    'manage_all',
+    'approve_delivery_person',
+    'assign_driver',
+    'approve_withdrawal',
+    'manage_products',
+    'view_orders',
+    'manage_delivery_status',
+    'view_transactions',
+    'manage_escrow',
+    'hide_product',
+    'block_artisan',
+    'handle_reports',
+    'view_reports',
+    'manage_users',
+    'manage_settings',
+];
+
 export const useAuthStore = defineStore('auth', {
   state: function () {
     return {
@@ -23,6 +42,11 @@ export const useAuthStore = defineStore('auth', {
     userRole: function (state) {
       const roleId = state.user?.role_id;
       return roleId != null ? Number(roleId) : null;
+    },
+
+    // ✅ NEW: Permission-based admin check (ignores role_id)
+    isAdmin: function (state) {
+      return state.permissions.some(p => ADMIN_PERMISSIONS.includes(p));
     },
 
     hasPermission: (state) => (permissionName) => {
@@ -79,27 +103,11 @@ export const useAuthStore = defineStore('auth', {
           console.warn('Cart merge failed (non-critical):', cartError);
         }
 
+        // ✅ FIXED: Use permissions, not role_id, for admin detection
+        // role_id 6 (finance), 5 (delivery admin), 7 (operations) all have admin permissions
         const roleId = Number(this.user.role_id);
 
-        const isAdmin = this.permissions.some(p => [
-          'manage_all',
-          'approve_delivery_person',
-          'assign_driver',
-          'approve_withdrawal',
-          'manage_products',
-          'view_orders',
-          'manage_delivery_status',
-          'view_transactions',
-          'manage_escrow',
-          'hide_product',
-          'block_artisan',
-          'handle_reports',
-          'view_reports',
-          'manage_users',
-          'manage_settings',
-        ].includes(p));
-
-        if (roleId === 4 && isAdmin) {
+        if (this.isAdmin) {
           router.push('/admin/dashboard');
         } else if (roleId === 2) {
           router.push('/artisan/dashboard');

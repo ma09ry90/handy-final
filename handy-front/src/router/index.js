@@ -71,13 +71,12 @@ router.beforeEach((to, from, next) => {
     const requiredRole = to.meta.role;
 
     if (requiredRole) {
-      const roleId = authStore.userRole;
-
-      if (requiredRole === 'admin' && roleId === 4) {
+      // ✅ FIXED: Admin = has ANY admin permission (role_id doesn't matter)
+      if (requiredRole === 'admin' && authStore.isAdmin) {
         next();
-      } else if (requiredRole === 'artisan' && roleId === 2) {
+      } else if (requiredRole === 'artisan' && authStore.userRole === 2) {
         next();
-      } else if (requiredRole === 'delivery' && roleId === 3) {
+      } else if (requiredRole === 'delivery' && authStore.userRole === 3) {
         next();
       } else {
         return next({ name: 'home' });
