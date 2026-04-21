@@ -87,9 +87,9 @@
 
       </div>
       <div class="mt-8 pt-6 border-t">
-        <router-link to="/register/delivery" class="text-green-600 hover:underline font-medium">
+        <!--<router-link to="/register/delivery" class="text-green-600 hover:underline font-medium">
           ← Back to Registration
-        </router-link>
+        </router-link>-->
       </div>
     </div>
   </div>

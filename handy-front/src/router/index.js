@@ -50,12 +50,12 @@ const router = createRouter({
       component: () => import('../views/auth/register/DeliveryRegister.vue')
     },
     {
-      path: '/register/delivery/terms-and-conditions',
+      path: '/terms-and-conditions',
       name: 'terms',
       component: () => import('@/views/terms/delivery/TermsAndConditions.vue')
     },
     {
-      path: '/register/delivery/privacy-policy',
+      path: '/privacy-policy',
       name: 'privacy',
       component: () => import('@/views/terms/delivery/privacy-policy.vue')
     },

@@ -15,6 +15,11 @@ const imagePreview = ref(null)
 const imageError = ref('')
 const isDragging = ref(false)
 
+// NEW: server-level error display (replaces alert())
+const serverError = ref('')
+// NEW: duplicate registration flag
+const alreadyRegistered = ref(false)
+
 const txt = computed(() => ({
   title: t('delivery_reg.title') || 'Register as Delivery Personnel',
   sub: t('delivery_reg.sub') || 'Join our logistics network and start earning.',
@@ -62,8 +67,9 @@ const txt = computed(() => ({
   submit: t('delivery_reg.submit') || 'Submit Application',
   has_account: t('delivery_reg.has_account') || 'Already have an account?',
   login_here: t('delivery_reg.login_here') || 'Log in here',
-  success_title: t('delivery_reg.success_title') || 'Application Submitted!',
-  success_msg: t('delivery_reg.success_msg') || 'Your application is under review.',
+  success_title: t('delivery_reg.success_title') || 'Registration Completed!',
+  success_msg: t('delivery_reg.success_msg') || 'Registration completed. Please wait for admin approval.',
+  success_sub: t('delivery_reg.success_sub') || 'Our team will review your application and notify you once it is approved.',
   terms_label: t('delivery_reg.terms_label') || 'I have read and agree to the',
   terms_link: t('delivery_reg.terms_link') || 'Terms and Conditions',
   privacy_link: t('delivery_reg.privacy_link') || 'Privacy Policy',
@@ -74,6 +80,13 @@ const txt = computed(() => ({
   map_locate: t('delivery_reg.map_locate') || 'Locate Me',
   map_reset: t('delivery_reg.map_reset') || 'Reset',
   map_required: t('delivery_reg.map_required') || 'Please select your location on the map',
+  // NEW error messages
+  duplicate_email: t('delivery_reg.duplicate_email') || 'This email is already registered. Please use a different email or log in to your account.',
+  duplicate_phone: t('delivery_reg.duplicate_phone') || 'This phone number is already registered. Please use a different number or log in to your account.',
+  already_registered_title: t('delivery_reg.already_registered_title') || 'Duplicate Registration Detected',
+  already_registered_msg: t('delivery_reg.already_registered_msg') || 'You have already submitted a delivery partner application. Please wait for admin approval before submitting again, or log in if you already have an account.',
+  generic_error: t('delivery_reg.generic_error') || 'An error occurred during registration. Please try again.',
+  network_error: t('delivery_reg.network_error') || 'Network error. Please check your internet connection and try again.',
   validation: {
     required: t('delivery_reg.validation.required') || 'This field is required',
     email_invalid: t('delivery_reg.validation.email_invalid') || 'Please enter a valid email',
@@ -137,7 +150,7 @@ const subcities = ref([]);
 const woredas = ref([]);
 
 // ============================================
-// MAP REFS & CONFIG (same pattern as artisan)
+// MAP REFS & CONFIG
 // ============================================
 const mapContainer = ref(null);
 let map = null;
@@ -148,7 +161,6 @@ const isSecureOrigin = ref(window.isSecureContext);
 const defaultLat = 9.0250;
 const defaultLng = 38.7469;
 
-// PREDEFINED COORDINATES FOR ETHIOPIAN CITIES
 const cityCoords = {
     'addis ababa': { lat: 9.0250, lng: 38.7469, zoomWithSubcities: 12, zoomWithoutSubcities: 13 },
     'adir dar': { lat: 11.5760, lng: 37.3908, zoomWithSubcities: 12, zoomWithoutSubcities: 14 },
@@ -169,7 +181,6 @@ const cityCoords = {
     'nekemte': { lat: 9.0819, lng: 36.5561, zoomWithSubcities: 12, zoomWithoutSubcities: 14 },
 };
 
-// PREDEFINED COORDINATES FOR ADDIS ABABA SUBCITIES
 const subcityCoords = {
     'addis ketema': { lat: 9.0200, lng: 38.7420 },
     'lideta': { lat: 9.0150, lng: 38.7350 },
@@ -184,38 +195,24 @@ const subcityCoords = {
     'chafe': { lat: 8.9600, lng: 38.7600 },
 };
 
-// Helper: Get coordinates for a city
 const getCityCoords = (city, hasSubcities) => {
     if (city.latitude && city.longitude) {
-        return {
-            lat: parseFloat(city.latitude),
-            lng: parseFloat(city.longitude),
-            zoom: hasSubcities ? 12 : 14
-        };
+        return { lat: parseFloat(city.latitude), lng: parseFloat(city.longitude), zoom: hasSubcities ? 12 : 14 };
     }
     const nameEn = (city.name_en || city.name || '').toLowerCase().trim();
     const nameAm = (city.name_am || '').toLowerCase().trim();
     const nameOr = (city.name_or || '').toLowerCase().trim();
     for (const [key, coords] of Object.entries(cityCoords)) {
         if (nameEn.includes(key) || nameAm === key || nameOr === key || key.includes(nameEn)) {
-            return {
-                lat: coords.lat,
-                lng: coords.lng,
-                zoom: hasSubcities ? coords.zoomWithSubcities : coords.zoomWithoutSubcities
-            };
+            return { lat: coords.lat, lng: coords.lng, zoom: hasSubcities ? coords.zoomWithSubcities : coords.zoomWithoutSubcities };
         }
     }
     return { lat: defaultLat, lng: defaultLng, zoom: hasSubcities ? 12 : 13 };
 };
 
-// Helper: Get coordinates for a subcity
 const getSubcityCoords = (subcity) => {
     if (subcity.latitude && subcity.longitude) {
-        return {
-            lat: parseFloat(subcity.latitude),
-            lng: parseFloat(subcity.longitude),
-            zoom: 15
-        };
+        return { lat: parseFloat(subcity.latitude), lng: parseFloat(subcity.longitude), zoom: 15 };
     }
     const nameEn = (subcity.name_en || subcity.name || '').toLowerCase().trim();
     const nameAm = (subcity.name_am || '').toLowerCase().trim();
@@ -239,7 +236,7 @@ onMounted(async () => {
 });
 
 // ============================================
-// MAP FUNCTIONS (same pattern as artisan)
+// MAP FUNCTIONS
 // ============================================
 const initMap = () => {
     if (!mapContainer.value) return;
@@ -261,10 +258,7 @@ const initMap = () => {
         shadowSize: [41, 41]
     });
 
-    marker = L.marker([defaultLat, defaultLng], {
-        icon: defaultIcon,
-        draggable: true
-    }).addTo(map);
+    marker = L.marker([defaultLat, defaultLng], { icon: defaultIcon, draggable: true }).addTo(map);
 
     form.value.latitude = defaultLat;
     form.value.longitude = defaultLng;
@@ -311,25 +305,16 @@ const locateMe = () => {
     geoLocateMsg.value = 'Detecting your location...';
     navigator.geolocation.getCurrentPosition(
         (position) => {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-            flyToLocation(lat, lng, 16);
+            flyToLocation(position.coords.latitude, position.coords.longitude, 16);
             geoLocateMsg.value = '';
         },
         (error) => {
             let msg = 'Could not get your location. ';
             switch (error.code) {
-                case error.PERMISSION_DENIED:
-                    msg += 'Location permission was denied. Please click on the map to set your location.';
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    msg += 'Location information unavailable. Please click on the map to set your location.';
-                    break;
-                case error.TIMEOUT:
-                    msg += 'Location request timed out. Please click on the map to set your location.';
-                    break;
-                default:
-                    msg += 'Please click on the map to set your location.';
+                case error.PERMISSION_DENIED: msg += 'Location permission was denied. Please click on the map to set your location.'; break;
+                case error.POSITION_UNAVAILABLE: msg += 'Location information unavailable. Please click on the map to set your location.'; break;
+                case error.TIMEOUT: msg += 'Location request timed out. Please click on the map to set your location.'; break;
+                default: msg += 'Please click on the map to set your location.';
             }
             geoLocateMsg.value = msg;
         },
@@ -345,7 +330,7 @@ const resetMap = () => {
 };
 
 // ============================================
-// WATCHERS (map flies on city/subcity change)
+// WATCHERS
 // ============================================
 watch(() => form.value.city_id, async (newVal) => {
   form.value.subcity_id = null;
@@ -360,20 +345,16 @@ watch(() => form.value.city_id, async (newVal) => {
       api.get(`/cities/${newVal}/subcities`),
       api.get(`/cities/${newVal}/woredas`)
     ]);
-
     subcities.value = subRes.data;
     woredas.value = woredaRes.data;
 
-    // Fly map to selected city
     const selectedCity = cities.value.find(c => c.id == newVal);
     if (selectedCity) {
       const hasSubcities = subcities.value.length > 0;
       const coords = getCityCoords(selectedCity, hasSubcities);
       flyToLocation(coords.lat, coords.lng, coords.zoom);
     }
-  } catch (e) {
-    console.error("Error loading location data", e);
-  }
+  } catch (e) { console.error("Error loading location data", e); }
 });
 
 watch(() => form.value.subcity_id, async (newVal) => {
@@ -386,15 +367,12 @@ watch(() => form.value.subcity_id, async (newVal) => {
     const res = await api.get(`/cities/${form.value.city_id}/woredas?subcity_id=${newVal}`);
     woredas.value = res.data;
 
-    // Fly map to selected subcity
     const selectedSubcity = subcities.value.find(s => s.id == newVal);
     if (selectedSubcity) {
       const coords = getSubcityCoords(selectedSubcity);
       flyToLocation(coords.lat, coords.lng, coords.zoom);
     }
-  } catch (e) {
-    console.error("Error loading woredas", e);
-  }
+  } catch (e) { console.error("Error loading woredas", e); }
 });
 
 // Image Validation Config
@@ -475,6 +453,17 @@ const handleFileChange = (event, fieldName) => {
   if (file) { form.value[fieldName] = file; }
 };
 
+// NEW: Clear a specific field error when user types
+const clearFieldError = (field) => {
+  if (errors.value[field]) {
+    delete errors.value[field]
+    // Trigger reactivity
+    errors.value = { ...errors.value }
+  }
+  if (serverError.value) serverError.value = ''
+  if (alreadyRegistered.value) alreadyRegistered.value = false
+}
+
 const validateForm = () => {
   const localErrors = {}
   if (!form.value.first_name.trim()) localErrors.first_name = [txt.value.validation.required]
@@ -496,50 +485,52 @@ const validateForm = () => {
   
   if (!form.value.profile_image) imageError.value = txt.value.validation.image_required
 
-  // Terms & Map validation
   if (!form.value.terms_accepted) localErrors.terms_accepted = [txt.value.terms_required]
   if (!form.value.latitude || !form.value.longitude) localErrors.map_location = [txt.value.map_required]
 
   return localErrors
 }
 
+// NEW: Helper to detect duplicate keywords in error messages
+const isDuplicateError = (msg) => {
+  const lower = (msg || '').toLowerCase()
+  return lower.includes('already') || lower.includes('taken') || lower.includes('unique') || lower.includes('exists') || lower.includes('duplicate')
+}
+
 const submitForm = async () => {
-  errors.value = {}; imageError.value = ''
+  // Clear all previous errors
+  errors.value = {}
+  imageError.value = ''
+  serverError.value = ''
+  alreadyRegistered.value = false
+
   const localErrors = validateForm()
   if (Object.keys(localErrors).length > 0 || imageError.value) {
-    errors.value = localErrors; window.scrollTo(0, 0); return
+    errors.value = localErrors
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    return
   }
   
   loading.value = true
+
   try {
     const formData = new FormData()
     
-    // Append Text Fields
     Object.keys(form.value).forEach(key => {
       if (!['profile_image', 'national_id_document', 'driving_license_document', 'vehicle_registration_document', 'terms_accepted', 'latitude', 'longitude'].includes(key) && form.value[key]) {
         formData.append(key, form.value[key])
       }
     })
     
-    // Append Address conditionally
     if (form.value.subcity_id) formData.append('subcity_id', form.value.subcity_id)
     if (form.value.woreda_id) formData.append('woreda_id', form.value.woreda_id)
-    
-    // Append Locale
     formData.append('locale', locale.value)
-
-    // Append role_id for delivery personnel
     formData.append('role_id', 3)
     
-    // Append Profile Image
     if (form.value.profile_image) formData.append('profile_image', form.value.profile_image)
-    
-    // Append Documents
     if (form.value.national_id_document) formData.append('national_id_document', form.value.national_id_document)
     if (form.value.driving_license_document) formData.append('driving_license_document', form.value.driving_license_document)
     if (form.value.vehicle_registration_document) formData.append('vehicle_registration_document', form.value.vehicle_registration_document)
-
-    // Append Map Coordinates
     if (form.value.latitude) formData.append('latitude', form.value.latitude)
     if (form.value.longitude) formData.append('longitude', form.value.longitude)
     
@@ -547,25 +538,77 @@ const submitForm = async () => {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
     
-    success.value = true; window.scrollTo(0, 0);
-    router.push('/login');
-  }  catch (error) {
+    // Show success screen — NO auto-redirect
+    success.value = true
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+
+  } catch (error) {
+    // Handle 422 validation errors from backend
     if (error.response?.status === 422) {
-      errors.value = error.response.data.errors;
-      window.scrollTo(0, 0);
-    } else {
-      let errorMsg = 'An error occurred during registration. Please try again.';
-      
-      if (error.response?.data?.message) {
-        if (error.response.data.message.includes('Duplicate entry') && error.response.data.message.includes('phone_number')) {
-          errorMsg = 'This phone number is already registered. Please use a different number or log in.';
-        } else {
-          errorMsg = error.response.data.message;
-        }
+      const serverErrors = error.response.data.errors || {}
+      errors.value = serverErrors
+
+      // Detect and rewrite duplicate email/phone errors with clear messages
+      if (serverErrors.email && isDuplicateError(serverErrors.email.join(' '))) {
+        errors.value.email = [txt.value.duplicate_email]
+        alreadyRegistered.value = true
       }
-      
-      alert(errorMsg);
+      if (serverErrors.phone_number && isDuplicateError(serverErrors.phone_number.join(' '))) {
+        errors.value.phone_number = [txt.value.duplicate_phone]
+        alreadyRegistered.value = true
+      }
+      if (serverErrors.national_id_number && isDuplicateError(serverErrors.national_id_number.join(' '))) {
+        errors.value.national_id_number = [txt.value.duplicate_phone] // reuse generic duplicate msg
+        alreadyRegistered.value = true
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
     }
+
+    // Handle 409 Conflict (explicit duplicate endpoint if your API uses it)
+    if (error.response?.status === 409) {
+      const msg = error.response?.data?.message || ''
+      if (msg.toLowerCase().includes('phone')) {
+        errors.value.phone_number = [txt.value.duplicate_phone]
+      } else if (msg.toLowerCase().includes('email')) {
+        errors.value.email = [txt.value.duplicate_email]
+      } else {
+        errors.value.email = [txt.value.duplicate_email]
+      }
+      alreadyRegistered.value = true
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
+
+    // Handle network errors (no response at all)
+    if (!error.response) {
+      serverError.value = txt.value.network_error
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
+
+    // Handle all other server errors (500, 503, etc.)
+    const msg = error.response?.data?.message || ''
+
+    if (msg.includes('Duplicate entry') && msg.includes('phone_number')) {
+      errors.value.phone_number = [txt.value.duplicate_phone]
+      alreadyRegistered.value = true
+    } else if (msg.includes('Duplicate entry') && msg.includes('email')) {
+      errors.value.email = [txt.value.duplicate_email]
+      alreadyRegistered.value = true
+    } else if (msg.includes('Duplicate entry')) {
+      alreadyRegistered.value = true
+      serverError.value = txt.value.already_registered_msg
+    } else {
+      serverError.value = msg || txt.value.generic_error
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+
+  } finally {
+    // ALWAYS reset loading — this is the critical fix
+    loading.value = false
   }
 }
 </script>
@@ -580,23 +623,36 @@ const submitForm = async () => {
       </div>
     </header>
 
-    <!-- Success State -->
+    <!-- ============================================ -->
+    <!-- SUCCESS STATE — no auto-redirect             -->
+    <!-- ============================================ -->
     <div v-if="success" class="flex-grow flex items-center justify-center p-8">
-      <div class="bg-white p-10 rounded-xl shadow-lg max-w-md text-center">
-        <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-          <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      <div class="bg-white p-10 rounded-2xl shadow-xl max-w-md text-center">
+        <!-- Animated checkmark -->
+        <div class="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <svg class="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
         </div>
         <h2 class="text-2xl font-bold text-gray-900 mb-2">{{ txt.success_title }}</h2>
-        <p class="text-gray-500 mb-6">{{ txt.success_msg }}</p>
-        <button @click="router.push('/login')" class="bg-green-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-green-700 transition">
-          {{ txt.login_here }}
-        </button>
+        <p class="text-gray-600 text-lg font-medium mb-2">{{ txt.success_msg }}</p>
+        <p class="text-gray-400 text-sm mb-8">{{ txt.success_sub }}</p>
+        <div class="flex flex-col gap-3">
+          <button @click="router.push('/login')"
+            class="w-full bg-green-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-green-700 transition">
+            {{ txt.login_here }}
+          </button>
+          <router-link to="/"
+            class="w-full text-gray-500 font-medium py-3 px-8 rounded-lg hover:text-gray-700 hover:bg-gray-50 transition text-center">
+            Go to Homepage
+          </router-link>
+        </div>
       </div>
     </div>
 
-    <!-- Registration Form -->
+    <!-- ============================================ -->
+    <!-- REGISTRATION FORM                            -->
+    <!-- ============================================ -->
     <main v-else class="flex-grow py-10 px-4 sm:px-8">
       <div class="bg-white p-8 sm:p-10 rounded-2xl shadow-xl w-full max-w-3xl mx-auto">
         
@@ -605,7 +661,49 @@ const submitForm = async () => {
           <p class="mt-2 text-gray-500">{{ txt.sub }}</p>
         </div>
 
-        <!-- GLOBAL ERROR BOX -->
+        <!-- ============================================ -->
+        <!-- DUPLICATE REGISTRATION WARNING               -->
+        <!-- ============================================ -->
+        <div v-if="alreadyRegistered" class="bg-amber-50 border-l-4 border-amber-400 p-4 mb-4 rounded">
+          <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+            </svg>
+            <div class="flex-1">
+              <h3 class="text-sm font-semibold text-amber-800">{{ txt.already_registered_title }}</h3>
+              <p class="text-sm text-amber-700 mt-1">{{ txt.already_registered_msg }}</p>
+              <router-link to="/login" class="inline-flex items-center gap-1 text-sm text-amber-800 font-semibold hover:underline mt-2">
+                {{ txt.login_here }}
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              </router-link>
+            </div>
+            <button type="button" @click="alreadyRegistered = false" class="text-amber-400 hover:text-amber-600 transition flex-shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SERVER ERROR (non-validation, replaces alert)-->
+        <!-- ============================================ -->
+        <div v-if="serverError" class="bg-red-50 border-l-4 border-red-400 p-4 mb-4 rounded">
+          <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+            </svg>
+            <div class="flex-1">
+              <h3 class="text-sm font-semibold text-red-800">Registration Error</h3>
+              <p class="text-sm text-red-700 mt-1">{{ serverError }}</p>
+            </div>
+            <button type="button" @click="serverError = ''" class="text-red-400 hover:text-red-600 transition flex-shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- VALIDATION ERRORS BOX                        -->
+        <!-- ============================================ -->
         <div v-if="Object.keys(errors).length > 0 || imageError" class="bg-red-50 border-l-4 border-red-400 p-4 mb-6 rounded">
           <div class="flex">
             <div class="ml-3">
@@ -685,18 +783,18 @@ const submitForm = async () => {
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">{{ txt.first_name }} <span class="text-red-500">*</span></label>
-                <input v-model="form.first_name" type="text" :class="inputClass('first_name')" :placeholder="txt.first_name">
+                <input v-model="form.first_name" type="text" @input="clearFieldError('first_name')" :class="inputClass('first_name')" :placeholder="txt.first_name">
                 <p v-if="errors.first_name" class="text-red-500 text-xs mt-1">{{ errors.first_name[0] }}</p>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">{{ txt.last_name }} <span class="text-red-500">*</span></label>
-                <input v-model="form.last_name" type="text" :class="inputClass('last_name')" :placeholder="txt.last_name">
+                <input v-model="form.last_name" type="text" @input="clearFieldError('last_name')" :class="inputClass('last_name')" :placeholder="txt.last_name">
                 <p v-if="errors.last_name" class="text-red-500 text-xs mt-1">{{ errors.last_name[0] }}</p>
               </div>
               
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">{{ txt.gender }} <span class="text-red-500">*</span></label>
-                <select v-model="form.gender" :class="inputClass('gender')">
+                <select v-model="form.gender" @change="clearFieldError('gender')" :class="inputClass('gender')">
                   <option value="">Select gender</option>
                   <option value="male">{{ txt.male }}</option>
                   <option value="female">{{ txt.female }}</option>
@@ -711,23 +809,23 @@ const submitForm = async () => {
 
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">{{ txt.email }} <span class="text-red-500">*</span></label>
-                <input v-model="form.email" type="email" :class="inputClass('email')" placeholder="example@email.com">
+                <input v-model="form.email" type="email" @input="clearFieldError('email')" :class="inputClass('email')" placeholder="example@email.com">
                 <p v-if="errors.email" class="text-red-500 text-xs mt-1">{{ errors.email[0] }}</p>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">{{ txt.phone }} <span class="text-red-500">*</span></label>
-                <input v-model="form.phone_number" type="tel" :class="inputClass('phone_number')" placeholder="+251 9XX XXX XXX">
+                <input v-model="form.phone_number" type="tel" @input="clearFieldError('phone_number')" :class="inputClass('phone_number')" placeholder="+251 9XX XXX XXX">
                 <p v-if="errors.phone_number" class="text-red-500 text-xs mt-1">{{ errors.phone_number[0] }}</p>
               </div>
 
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">{{ txt.password }} <span class="text-red-500">*</span></label>
-                <input v-model="form.password" type="password" :class="inputClass('password')" :placeholder="txt.password">
+                <input v-model="form.password" type="password" @input="clearFieldError('password')" :class="inputClass('password')" :placeholder="txt.password">
                 <p v-if="errors.password" class="text-red-500 text-xs mt-1">{{ errors.password[0] }}</p>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">{{ txt.password_confirm }} <span class="text-red-500">*</span></label>
-                <input v-model="form.password_confirmation" type="password" :class="inputClass('password_confirmation')" :placeholder="txt.password_confirm">
+                <input v-model="form.password_confirmation" type="password" @input="clearFieldError('password_confirmation')" :class="inputClass('password_confirmation')" :placeholder="txt.password_confirm">
                 <p v-if="errors.password_confirmation" class="text-red-500 text-xs mt-1">{{ errors.password_confirmation[0] }}</p>
               </div>
             </div>
@@ -739,7 +837,7 @@ const submitForm = async () => {
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">{{ txt.vehicle_type }} <span class="text-red-500">*</span></label>
-                <select v-model="form.vehicle_type" :class="inputClass('vehicle_type')">
+                <select v-model="form.vehicle_type" @change="clearFieldError('vehicle_type')" :class="inputClass('vehicle_type')">
                   <option value="">{{ txt.select_type }}</option>
                   <option value="motorcycle">{{ txt.motorcycle }}</option>
                   <option value="car">{{ txt.car }}</option>
@@ -749,7 +847,7 @@ const submitForm = async () => {
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">{{ txt.plate_number }} <span class="text-red-500">*</span></label>
-                <input v-model="form.vehicle_plate_number" type="text" :class="inputClass('vehicle_plate_number')" :placeholder="txt.plate_number">
+                <input v-model="form.vehicle_plate_number" type="text" @input="clearFieldError('vehicle_plate_number')" :class="inputClass('vehicle_plate_number')" :placeholder="txt.plate_number">
                 <p v-if="errors.vehicle_plate_number" class="text-red-500 text-xs mt-1">{{ errors.vehicle_plate_number[0] }}</p>
               </div>
               <div>
@@ -768,7 +866,7 @@ const submitForm = async () => {
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">{{ txt.national_id }} <span class="text-red-500">*</span></label>
-                <input v-model="form.national_id_number" type="text" :class="inputClass('national_id_number')" :placeholder="txt.national_id">
+                <input v-model="form.national_id_number" type="text" @input="clearFieldError('national_id_number')" :class="inputClass('national_id_number')" :placeholder="txt.national_id">
                 <p v-if="errors.national_id_number" class="text-red-500 text-xs mt-1">{{ errors.national_id_number[0] }}</p>
               </div>
               <div>
@@ -798,7 +896,7 @@ const submitForm = async () => {
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">City <span class="text-red-500">*</span></label>
-                <select v-model="form.city_id" :class="inputClass('city_id')">
+                <select v-model="form.city_id" @change="clearFieldError('city_id')" :class="inputClass('city_id')">
                   <option value="" disabled>Select City</option>
                   <option v-for="c in cities" :key="c.id" :value="c.id">{{ c['name_' + locale] || c.name }}</option>
                 </select>
@@ -806,7 +904,7 @@ const submitForm = async () => {
               </div>
               <div v-if="form.city_id && subcities.length > 0">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Subcity <span class="text-red-500">*</span></label>
-                <select v-model="form.subcity_id" :class="inputClass('subcity_id')">
+                <select v-model="form.subcity_id" @change="clearFieldError('subcity_id')" :class="inputClass('subcity_id')">
                   <option value="" disabled>Select Subcity</option>
                   <option v-for="s in subcities" :key="s.id" :value="s.id">{{ s['name_' + locale] || s.name }}</option>
                 </select>
@@ -814,7 +912,7 @@ const submitForm = async () => {
               </div>
               <div v-if="form.city_id && woredas.length > 0">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Woreda <span class="text-red-500">*</span></label>
-                <select v-model="form.woreda_id" :class="inputClass('woreda_id')">
+                <select v-model="form.woreda_id" @change="clearFieldError('woreda_id')" :class="inputClass('woreda_id')">
                   <option value="" disabled>Select Woreda</option>
                   <option v-for="w in woredas" :key="w.id" :value="w.id">{{ w['name_' + locale] || w.name }}</option>
                 </select>
@@ -825,7 +923,7 @@ const submitForm = async () => {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Street <span class="text-red-500">*</span></label>
-                <input v-model="form.street" type="text" :class="inputClass('street')" placeholder="Street name or area">
+                <input v-model="form.street" type="text" @input="clearFieldError('street')" :class="inputClass('street')" placeholder="Street name or area">
                 <p v-if="errors.street" class="text-red-500 text-xs mt-1">{{ errors.street[0] }}</p>
               </div>
               <div>
@@ -834,7 +932,7 @@ const submitForm = async () => {
               </div>
             </div>
 
-            <!-- ─── MAP SECTION (same pattern as artisan) ─── -->
+            <!-- MAP SECTION -->
             <div class="space-y-3" :class="{'border border-red-500 rounded-lg p-3': errors.latitude || errors.longitude || errors.map_location}">
               <div class="flex items-center justify-between">
                 <label class="block text-sm font-medium text-gray-700">
@@ -861,7 +959,6 @@ const submitForm = async () => {
 
               <p class="text-xs text-gray-500">{{ txt.map_desc }}</p>
 
-              <!-- Geolocation Message -->
               <div v-if="geoLocateMsg" class="flex items-start gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
                 <svg class="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
@@ -869,25 +966,17 @@ const submitForm = async () => {
                 <span class="text-xs text-amber-700">{{ geoLocateMsg }}</span>
               </div>
 
-              <!-- Map Container -->
               <div ref="mapContainer" class="w-full h-[300px] md:h-[350px] rounded-lg border-2 border-gray-200 z-0"></div>
 
-              <!-- Coordinate Display -->
               <div class="flex flex-wrap gap-4 mt-2">
-                <div class="flex items-center gap-2 text-sm">
-                  <span class="px-2 py-1 bg-blue-50 text-blue-700 rounded font-mono text-xs">
-                    Lat: {{ form.latitude || '9.025000' }}
-                  </span>
-                </div>
-                <div class="flex items-center gap-2 text-sm">
-                  <span class="px-2 py-1 bg-blue-50 text-blue-700 rounded font-mono text-xs">
-                    Lng: {{ form.longitude || '38.746900' }}
-                  </span>
-                </div>
+                <span class="px-2 py-1 bg-blue-50 text-blue-700 rounded font-mono text-xs">
+                  Lat: {{ form.latitude || '9.025000' }}
+                </span>
+                <span class="px-2 py-1 bg-blue-50 text-blue-700 rounded font-mono text-xs">
+                  Lng: {{ form.longitude || '38.746900' }}
+                </span>
               </div>
 
-              <p v-if="errors.latitude" class="text-red-500 text-xs mt-1">{{ errors.latitude[0] }}</p>
-              <p v-if="errors.longitude" class="text-red-500 text-xs mt-1">{{ errors.longitude[0] }}</p>
               <p v-if="errors.map_location" class="text-red-500 text-xs mt-1">{{ errors.map_location[0] }}</p>
             </div>
           </div>
@@ -931,7 +1020,7 @@ const submitForm = async () => {
 
             <div class="p-4 bg-gray-50 rounded-lg border" :class="{'border-red-500': errors.terms_accepted}">
               <label class="flex items-start cursor-pointer gap-3">
-                <input type="checkbox" v-model="form.terms_accepted"
+                <input type="checkbox" v-model="form.terms_accepted" @change="clearFieldError('terms_accepted')"
                   class="mt-1 w-5 h-5 text-green-600 rounded border-gray-300 focus:ring-green-500 cursor-pointer">
                 <span class="text-sm text-gray-700 leading-relaxed">
                   {{ txt.terms_label }}
@@ -976,7 +1065,7 @@ const submitForm = async () => {
             </div>
           </div>
 
-          <!-- Submit -->
+          <!-- Submit Button -->
           <button type="submit" :disabled="loading" 
             class="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-lg shadow-lg transition flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
             <svg v-if="loading" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
