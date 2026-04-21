@@ -7,11 +7,7 @@ const loading = ref(true)
 
 const fetchOrders = async () => {
   try {
-    const res = await api.get('/artisan/products') // Reuse existing endpoint that returns products with order data, OR create a specific orders endpoint in backend if you prefer
-    // Assuming you will add a dedicated route for this in ArtisanProductController:
-    // Route::get('/artisan/orders', [ArtisanProductController::class, 'getMyOrders']);
-    
-    // For now, we mock the API call
+    // Ensure this endpoint matches the route we updated in the controller
     const ordersRes = await api.get('/artisan/orders'); 
     orders.value = ordersRes.data;
   } catch (e) {
@@ -45,25 +41,51 @@ onMounted(fetchOrders)
       You haven't sold anything yet!
     </div>
 
-    <div v-else class="space-y-4">
-      <div v-for="order in orders" :key="order.id" class="bg-white p-5 rounded-xl border shadow-sm flex flex-col sm:flex-row justify-between gap-4">
-        <div>
-          <p class="font-bold text-gray-900">{{ order.order_number }}</p>
-          <p class="text-sm text-gray-500">Total: {{ order.total_amount }} ETB</p>
-          <span class="inline-block mt-1 px-2 py-0.5 text-xs font-bold rounded bg-blue-100 text-blue-700">
-            {{ order.status.replace(/_/g, ' ') }}
-          </span>
-        </div>
+    <div v-else class="space-y-6">
+      <div v-for="order in orders" :key="order.id" class="bg-white p-6 rounded-xl border shadow-sm">
         
-        <div class="flex items-end">
-          <button 
-            v-if="order.status === 'paid'" 
-            @click="markReady(order.id)"
-            class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition"
-          >
-            📦 Ready for Pickup
-          </button>
+        <!-- Top Row: Order Info & Action -->
+        <div class="flex flex-col sm:flex-row justify-between gap-4 border-b pb-4 mb-4">
+          <div>
+            <p class="font-bold text-lg text-gray-900">{{ order.order_number }}</p>
+            <p class="text-xs text-gray-400 mt-1">Created: {{ order.created_at }}</p>
+            <span class="inline-block mt-2 px-3 py-1 text-xs font-bold rounded-full bg-blue-100 text-blue-700 uppercase">
+              {{ order.status.replace(/_/g, ' ') }}
+            </span>
+          </div>
+          
+          <div class="flex items-center">
+            <button 
+              v-if="order.status === 'paid'" 
+              @click="markReady(order.id)"
+              class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition shadow-sm">
+              📦 Ready for Pickup
+            </button>
+          </div>
         </div>
+
+        <!-- 👉 NEW: Earnings Breakdown Section -->
+        <div class="bg-gray-50 rounded-lg p-4 border border-dashed border-gray-200">
+            <h3 class="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">Earnings Breakdown</h3>
+            
+            <div class="flex justify-between items-center mb-2 text-gray-700">
+                <span>Product Total:</span>
+                <span class="font-medium">{{ order.product_total }} ETB</span>
+            </div>
+
+            <div class="flex justify-between items-center mb-2 text-red-500">
+                <span>Platform Fee (10%):</span>
+                <span class="font-medium">- {{ order.platform_fee }} ETB</span>
+            </div>
+
+            <div class="border-t border-gray-200 my-2"></div>
+
+            <div class="flex justify-between items-center text-green-600">
+                <span class="font-bold text-base">You Earn:</span>
+                <span class="font-extrabold text-xl">{{ order.artisan_earning }} ETB</span>
+            </div>
+        </div>
+
       </div>
     </div>
   </div>
