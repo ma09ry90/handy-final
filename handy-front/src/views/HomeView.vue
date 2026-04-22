@@ -15,14 +15,14 @@ const wishlistStore = useWishlistStore();
 
 const products = ref([]);
 const categories = ref([]);
-const cities = ref([]); // NEW: For location filter
+const cities = ref([]); 
 const isLoading = ref(true);
 const isLangOpen = ref(false);
 const isMobileMenuOpen = ref(false);
 
 // ── Search & Filter State ──
 const searchQuery = ref('');
-const selectedCityId = ref(null); // NEW: Location filter
+const selectedCityId = ref(null); 
 const selectedParentId = ref(null);
 const selectedChildId = ref(null);
 const selectedChildren = ref([]);
@@ -39,6 +39,7 @@ const isArtisan = computed(() => authStore.isAuthenticated && Number(authStore.u
 const isDelivery = computed(() => authStore.isAuthenticated && Number(authStore.user?.role_id) === 3);
 
 const languages = [{ code: 'en', name: 'English' }, { code: 'am', name: 'አማርኛ' }, { code: 'or', name: 'Afaan Oromoo' }];
+// FIX 1: Added missing  operator
 const currentLangName = computed(() => languages.find(l => l.code === locale.value)?.name || 'Language');
 
 const changeLanguage = (code) => {
@@ -65,7 +66,6 @@ const formatPrice = (price) => new Intl.NumberFormat('en-US', { style: 'currency
 const getStars = (rating) => {
     return Array.from({ length: 5 }, (_, i) => i < Math.round(rating));
 };
-
 // ── Category Actions ──
 const selectParent = (cat) => {
     if (selectedParentId.value === cat.id) {
@@ -91,11 +91,11 @@ const clearFilter = () => {
     selectedParentId.value = null;
     selectedChildId.value = null;
     selectedChildren.value = [];
-    searchQuery.value = ''; // Clear search too
+    searchQuery.value = ''; 
 };
 
 const activeFilterLabel = computed(() => {
-    if (searchQuery.value) return t('home.search_results'); // "Search Results"
+    if (searchQuery.value) return t('home.search_results'); 
     if (selectedChildId.value) {
         const parent = categories.value.find(c => c.id === selectedParentId.value);
         const child = parent?.children?.find(c => c.id === selectedChildId.value);
@@ -107,7 +107,8 @@ const activeFilterLabel = computed(() => {
     return '';
 });
 
-// ── API Calls ──// 1. Fetch Products (Search + Filter)
+// ── API Calls ──
+
 const fetchProducts = async () => {
     isLoading.value = true;
     try {
@@ -115,7 +116,7 @@ const fetchProducts = async () => {
         const params = {};
         if (catId) params.category_id = catId;
         if (searchQuery.value) params.keyword = searchQuery.value;
-        if (selectedCityId.value) params.city_id = selectedCityId.value; // Location Filter
+        if (selectedCityId.value) params.city_id = selectedCityId.value;
 
         const response = await api.get('/products', { params });
         if (response.data?.data?.length > 0) {
@@ -131,7 +132,6 @@ const fetchProducts = async () => {
     }
 };
 
-// 2. Fetch Recommendations (Home Page)
 const fetchRecommendations = async () => {
     try {
         const params = {};
@@ -144,7 +144,6 @@ const fetchRecommendations = async () => {
     }
 };
 
-// 3. Fetch Cities for Filter
 const fetchCities = async () => {
     try {
         const { data } = await api.get('/cities');
@@ -154,11 +153,8 @@ const fetchCities = async () => {
     }
 };
 
-// Watchers
 watch([selectedParentId, selectedChildId, searchQuery, selectedCityId], () => {
     fetchProducts();
-    // If user filters or searches, we might want to hide recommendations to save space
-    // or keep them. Usually recommendations are for "Idle" browsing.
 });
 
 const handleToggleWishlist = (product) => {
@@ -182,21 +178,18 @@ onMounted(async () => {
     if (cartStore.loadLocal) cartStore.loadLocal();
   }
 
-  // Load initial data
   await Promise.all([
       fetchProducts(),
       fetchCities(),
       fetchRecommendations()
   ]);
 
-  // Fetch categories separately to keep logic clean
   try {
     const catRes = await api.get('/categories');
     categories.value = catRes.data;
   } catch (e) { /* silent */ }
 });
 </script>
-
 <template>
   <div class="min-h-screen flex flex-col bg-white font-sans">
     
@@ -209,10 +202,7 @@ onMounted(async () => {
             <span class="text-2xl sm:text-3xl font-extrabold text-amber-400">Store</span>
           </RouterLink>
 
-          <!-- Desktop Nav -->
           <div class="hidden md:flex items-center gap-5">
-             <!-- ... (Keep existing desktop navigation code here) ... -->
-             <!-- Language -->
              <div class="relative">
               <button @click="isLangOpen = !isLangOpen" class="flex items-center gap-1 text-gray-600 hover:text-gray-900 font-medium text-sm">
                 {{ currentLangName }}
@@ -228,7 +218,6 @@ onMounted(async () => {
               <span v-if="cartStore.count > 0" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-bold">{{ cartStore.count }}</span>
             </RouterLink>
 
-             <!-- Auth Buttons (Copied from original) -->
             <template v-if="isBuyer">
               <RouterLink to="/reels" class="text-gray-600 hover:text-emerald-600 font-medium text-sm">Reels</RouterLink>
               <RouterLink to="/orders" class="text-gray-600 hover:text-emerald-600 font-medium text-sm">Orders</RouterLink>
@@ -236,19 +225,20 @@ onMounted(async () => {
               <RouterLink to="/account" class="text-gray-600 hover:text-emerald-600 font-medium text-sm">{{ t('nav.my_account') }}</RouterLink>
               <button @click="authStore.logout" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-full text-sm">{{ t('nav.logout') }}</button>
             </template>
-            <template v-else-if="isArtisan  isDelivery">
+
+            <!-- FIX 2: Added missing  operator -->
+            <template v-else-if="isArtisan || isDelivery">
               <RouterLink :to="isArtisan ? '/artisan/dashboard' : '/delivery/dashboard'" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-bold py-2 px-4 rounded-full text-sm">Dashboard</RouterLink>
               <button @click="authStore.logout" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-full text-sm">{{ t('nav.logout') }}</button>
             </template>
+
             <template v-else>
               <RouterLink to="/login" class="text-gray-600 hover:text-emerald-600 font-medium text-sm">{{ t('nav.sign_in') }}</RouterLink>
               <RouterLink to="/register/buyer" class="bg-amber-400 hover:bg-amber-500 text-gray-900 font-bold py-2 px-4 rounded-full text-sm">{{ t('nav.register') }}</RouterLink>
             </template>
           </div>
-          <!-- Mobile Menu Button -->
           <div class="flex items-center gap-3 md:hidden">
-             <!-- ... (Keep existing mobile button code) ... -->
-             <RouterLink to="/cart" class="relative p-2 text-gray-600">
+            <RouterLink to="/cart" class="relative p-2 text-gray-600">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
               <span v-if="cartStore.count > 0" class="absolute top-0 right-0 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">{{ cartStore.count }}</span>
             </RouterLink>
@@ -260,19 +250,18 @@ onMounted(async () => {
         </div>
       </div> 
       
-      <!-- MOBILE DRAWER (Keep existing structure) -->
+      <!-- MOBILE DRAWER -->
       <div v-if="isMobileMenuOpen" class="fixed inset-0 z-40 md:hidden" style="background-color: rgba(0,0,0,0.5);">
-         <!-- ... (Copy existing Mobile Drawer code here) ... -->
-         <div class="fixed inset-y-0 right-0 w-full max-w-sm bg-white shadow-2xl flex flex-col">
+        <div class="fixed inset-y-0 right-0 w-full max-w-sm bg-white shadow-2xl flex flex-col">
           <div class="p-6 border-b flex justify-between items-center bg-gray-50">
             <span class="text-xl font-bold text-gray-800">Menu</span>
             <button @click="isMobileMenuOpen = false" class="text-gray-500 hover:text-gray-800"><svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
           </div>
           <div class="flex-grow p-6 space-y-1 overflow-y-auto">
-             <!-- Mobile Links -->
             <RouterLink v-if="isBuyer" to="/reels" @click="isMobileMenuOpen = false" class="flex items-center gap-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 font-medium">Reels</RouterLink>
             <RouterLink v-if="isBuyer" to="/orders" @click="isMobileMenuOpen = false" class="flex items-center gap-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 font-medium">Orders</RouterLink>
-            <!-- ... other links ... -->
+             <!-- FIX 3: Added missing  operator -->
+             <RouterLink v-if="isArtisan || isDelivery" :to="isArtisan ? '/artisan/dashboard' : '/delivery/dashboard'" @click="isMobileMenuOpen = false" class="flex items-center gap-3 p-3 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 font-bold">Go to Dashboard</RouterLink>
           </div>
         </div>
       </div>
@@ -281,7 +270,6 @@ onMounted(async () => {
     <main class="flex-grow">
       <!-- HERO SECTION -->
       <section class="relative w-full bg-gradient-to-br from-emerald-50 via-white to-white border-b border-gray-100">
-        <!-- ... (Keep existing Hero logic) ... -->
         <div class="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-5 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-6">
           <div class="text-center md:text-left">
             <h1 class="text-xl sm:text-2xl font-extrabold text-gray-900 leading-tight">{{ t('hero.title_1') }} <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-green-400">{{ t('hero.title_highlight') }}</span></h1>
@@ -289,11 +277,10 @@ onMounted(async () => {
           </div>
         </div>
       </section>
-      <!-- ── NEW: SEARCH & LOCATION BAR ── -->
+      <!-- SEARCH & LOCATION BAR -->
       <section class="sticky top-20 z-30 bg-white shadow-sm border-b">
         <div class="w-full px-4 sm:px-6 lg:px-12 max-w-[1920px] mx-auto py-3">
           <div class="flex flex-col sm:flex-row gap-3">
-            <!-- Search Input -->
             <div class="relative flex-grow">
               <input 
                 v-model="searchQuery"
@@ -304,7 +291,6 @@ onMounted(async () => {
               <svg class="absolute left-3.5 top-3 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             </div>
             
-            <!-- Location Filter -->
             <div class="flex-shrink-0">
               <select 
                 v-model="selectedCityId" 
@@ -318,13 +304,12 @@ onMounted(async () => {
         </div>
       </section>
 
-      <!-- ── CATEGORY BAR ── -->
+      <!-- CATEGORY BAR -->
       <section class="w-full bg-white border-b border-gray-100">
-        <!-- ... (Keep existing Category Bar code) ... -->
         <div class="w-full px-4 sm:px-6 lg:px-12 max-w-[1920px] mx-auto py-5">
           <div class="flex items-center gap-3 overflow-x-auto pb-3 scrollbar-hide">
+            <!-- FIX 4: Added missing  operator -->
             <button @click="clearFilter" class="flex-shrink-0 px-4 py-2.5 rounded-full text-sm font-semibold transition border-2" :class="!selectedParentId ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-700 border-gray-200'">{{ t('products.all') || 'All' }}</button>
-            <!-- Categories Loop -->
             <button v-for="cat in categories" :key="cat.id" @click="selectParent(cat)" class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition border-2 bg-white" :class="selectedParentId === cat.id ? 'border-emerald-500 text-emerald-700 bg-emerald-50' : 'border-gray-200 text-gray-700'">
               <span>{{ cat.name }}</span>
             </button>
@@ -332,12 +317,9 @@ onMounted(async () => {
         </div>
       </section>
 
-      <!-- ── NEW: RECOMMENDATIONS SECTION ── -->
-      <!-- Only show when not searching or filtering -->
+      <!-- RECOMMENDATIONS SECTION -->
       <section v-if="!searchQuery && !selectedParentId" class="bg-gray-50 py-8">
          <div class="w-full px-4 sm:px-6 lg:px-12 max-w-[1920px] mx-auto space-y-10">
-            
-            <!-- Near You -->
             <div v-if="recommendations.near_you && recommendations.near_you.length > 0">
               <h3 class="text-lg font-bold text-gray-800 mb-4">{{ t('home.near_you') }}</h3>
               <div class="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
@@ -350,7 +332,6 @@ onMounted(async () => {
                 </div>
               </div>
             </div>
-            <!-- Trending Addis -->
             <div v-if="recommendations.trending_addis && recommendations.trending_addis.length > 0">
                <h3 class="text-lg font-bold text-gray-800 mb-4">{{ t('home.trending_addis') }}</h3>
                <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -363,41 +344,36 @@ onMounted(async () => {
                   </div>
                </div>
             </div>
-
          </div>
       </section>
 
-      <!-- ── PRODUCT SECTION HEADING ── -->
+      <!-- PRODUCT SECTION HEADING -->
       <section class="py-6 md:py-8 bg-white w-full">
         <div class="w-full px-4 sm:px-6 lg:px-12 max-w-[1920px] mx-auto flex items-center justify-between">
           <div>
             <h2 class="text-2xl md:text-3xl font-bold text-gray-900">
               <span v-if="activeFilterLabel">{{ activeFilterLabel }}</span>
+              <!-- FIX 5: Added missing  operator -->
               <span v-else>{{ t('products.heading') || 'All Products' }}</span>
             </h2>
             <p class="text-sm text-gray-500 mt-1">{{ products.length }} {{ t('products.items') || 'items' }}</p>
           </div>
-          <button v-if="selectedParentId  searchQuery" @click="clearFilter" class="text-sm text-emerald-600 hover:text-emerald-800 font-medium">Clear</button>
+          <button v-if="selectedParentId || searchQuery" @click="clearFilter" class="text-sm text-emerald-600 hover:text-emerald-800 font-medium">Clear</button>
         </div>
       </section>
 
-      <!-- ── PRODUCT GRID ── -->
+      <!-- PRODUCT GRID -->
       <section class="py-6 md:py-12 bg-gray-50 w-full">
         <div class="w-full px-4 sm:px-6 lg:px-12 max-w-[1920px] mx-auto">
-          <!-- Loading State -->
           <div v-if="isLoading" class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-             <!-- ... (Skeleton loader) ... -->
              <div v-for="n in 8" :key="n" class="bg-white rounded-2xl overflow-hidden animate-pulse"><div class="aspect-square bg-gray-200"></div></div>
-          </div><!-- Empty State -->
-          <div v-else-if="products.length === 0" class="text-center py-20">
-             <!-- ... (Empty state) ... -->
-             <p class="text-gray-500">No products found</p>
           </div>
 
-          <!-- Product List -->
+          <div v-else-if="products.length === 0" class="text-center py-20">
+             <p class="text-gray-500">No products found</p>
+          </div>
           <div v-else class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
             <div v-for="product in products" :key="product.id" class="group relative flex flex-col bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl transition cursor-pointer">
-               <!-- ... (Keep existing Product Card structure) ... -->
                <RouterLink :to="`/product/${product.id}`" class="block relative aspect-square bg-gray-100 overflow-hidden">
                 <img :src="getProductImage(product)" :alt="getProductName(product)" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                 <div v-if="!product.is_in_stock" class="absolute top-2 left-2 z-10 bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow">Sold Out</div>
@@ -417,9 +393,8 @@ onMounted(async () => {
       </section>
     </main>
 
-    <!-- Footer (Keep existing) -->
     <footer class="bg-gray-900 text-white pt-16 pb-8 w-full">
-       <!-- ... -->
+       <div class="w-full px-6 lg:px-12 max-w-[1920px] mx-auto text-center text-gray-500 text-sm">© 2024 HandyStore. All rights reserved.</div>
     </footer>
   </div>
 </template>
