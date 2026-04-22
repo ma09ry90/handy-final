@@ -258,40 +258,31 @@ onMounted(async () => {
     </header>
 
     <main class="flex-grow">
-      <!-- Hero Section -->
-      <section v-if="!authStore.isAuthenticated" class="relative w-full min-h-[60vh] md:min-h-screen flex items-center overflow-hidden bg-gradient-to-br from-white via-emerald-50 to-white">
-        <div class="w-full h-full max-w-[1920px] mx-auto px-6 lg:px-12 py-8 md:py-20 flex flex-col md:flex-row items-center justify-between gap-8">
-          <div class="z-10 space-y-5 md:space-y-8 text-center md:text-left max-w-2xl">
-            <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-extrabold text-gray-900 leading-tight">{{ t('hero.title_1') }} <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-green-400">{{ t('hero.title_highlight') }}</span></h1>
-            <p class="text-sm sm:text-base md:text-lg text-gray-600">{{ t('hero.subtitle') }}</p>
-            <div class="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-              <RouterLink to="/register/buyer" class="inline-flex items-center justify-center bg-emerald-600 text-white font-bold py-3 px-8 rounded-full text-base md:text-lg">Shop Now</RouterLink>
-              <RouterLink to="/register/artisan" class="inline-flex items-center justify-center border-2 border-gray-200 text-gray-700 font-bold py-3 px-8 rounded-full text-base md:text-lg">Become a Seller</RouterLink>
+            <!-- Hero Section -->
+      <section v-if="!authStore isAuthenticated" class="relative w-full bg-gradient-to-br from-emerald-50 via-white to-white border-b border-gray-100">
+        <div class="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12 py-6 md:py-8 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-8">
+          <div class="text-center md:text-left max-w-xl">
+            <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">{{ t('hero.title_1' }} <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-green-400">{{ t('hero.title_highlight') }}</span></h1>
+            <p class="text-sm text-gray-600 mt-2">{{ t('hero.subtitle') }}</p>
+            <div class="flex flex-col sm:flex-row gap-3 justify-center md:justify-start mt-4">
+              <RouterLink to="/register/buyer" class="inline-flex items-center justify-center bg-emerald-600 text-white font-bold py-2.5 px-6 rounded-full text-sm">Shop Now</RouterLink>
+              <RouterLink to="/register/artisan" class="inline-flex items-center justify-center border-2 border-gray-200 text-gray-700 font-bold py-2.5 px-6 rounded-full text-sm">Become a Seller</RouterLink>
             </div>
           </div>
-          <div class="hidden md:flex flex-col items-end text-right max-w-md z-10">
-            <div class="bg-white/70 backdrop-blur-sm border border-emerald-100 rounded-2xl p-8 shadow-sm">
-              <div class="flex items-center justify-end gap-2 mb-3">
-                <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
-              </div>
-              <h3 class="text-3xl font-extrabold text-emerald-800 mb-2">Build a <span class="text-emerald-600">Green Legacy</span></h3>
-              <p class="text-base text-gray-600 leading-relaxed">Love the environment, plant a tree, and support sustainable local crafts.</p>
+          <div class="hidden md:flex items-center">
+            <div class="bg-white/70 backdrop-blur-sm border border-emerald-100 rounded-xl p-6 shadow-sm">
+              <h3 class="text-2xl font-extrabold text-emerald-800 mb-1">Build a <span class="text-emerald-600">Green Legacy</span></h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Love the environment, plant a tree, and support sustainable local crafts.</p>
             </div>
-          </div>
-        </div>
-        <div class="md:hidden absolute bottom-4 left-0 right-0 flex justify-center px-6">
-          <div class="flex items-center gap-2 bg-white/80 backdrop-blur-sm border border-emerald-200 rounded-full px-4 py-2 shadow-sm">
-            <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
-            <p class="text-xs text-emerald-800 font-medium">Build a Green Legacy — Plant a tree, love the environment.</p>
           </div>
         </div>
       </section>
 
-      <section v-else class="w-full py-12 md:py-20 bg-gradient-to-br from-emerald-50 to-white border-b">
-        <div class="max-w-4xl mx-auto text-center px-6 space-y-4 md:space-y-6">
-          <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900">Welcome back, {{ authStore.user?.first_name }}!</h1>
-          <p class="text-base md:text-lg text-gray-600 max-w-2xl mx-auto">here is your profile.</p>
-          <RouterLink :to="isArtisan ? '/artisan/dashboard' : isDelivery ? '/delivery/dashboard' : '/account'" class="inline-flex items-center justify-center gap-2 bg-emerald-600 text-white font-bold py-3 px-8 rounded-full text-lg hover:bg-emerald-700 transition shadow-lg">Go to profile</RouterLink>
+      <section v-else class="w-full py-8 bg-gradient-to-br from-emerald-50 to-white border-b border-gray-100">
+        <div class="max-w-4xl mx-auto text-center px-6 space-y-3">
+          <h1 class="text-2xl md:text-3xl font-extrabold text-gray-900">Welcome back, {{ authStore.user?.first_name }}!</h1>
+          <p class="text-sm text-gray-600">here is your profile.</p>
+          <RouterLink :to="isArtisan ? '/artisan/dashboard' : isDelivery ? '/delivery/dashboard' : '/account'" class="inline-flex items-center justify-center gap-2 bg-emerald-600 text-white font-bold py-2.5 px-6 rounded-full text-sm hover:bg-emerald-700 transition shadow-lg">Go to profile</RouterLink>
         </div>
       </section>
 
