@@ -259,10 +259,10 @@ onMounted(async () => {
 
     <main class="flex-grow">
             <!-- Hero Section -->
-      <section v-if="!authStore isAuthenticated" class="relative w-full bg-gradient-to-br from-emerald-50 via-white to-white border-b border-gray-100">
+      <section v-if="!authStore.isAuthenticated" class="relative w-full bg-gradient-to-br from-emerald-50 via-white to-white border-b border-gray-100">
         <div class="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12 py-6 md:py-8 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-8">
           <div class="text-center md:text-left max-w-xl">
-            <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">{{ t('hero.title_1' }} <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-green-400">{{ t('hero.title_highlight') }}</span></h1>
+            <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">{{ t('hero.title_1') }} <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-green-400">{{ t('hero.title_highlight') }}</span></h1>
             <p class="text-sm text-gray-600 mt-2">{{ t('hero.subtitle') }}</p>
             <div class="flex flex-col sm:flex-row gap-3 justify-center md:justify-start mt-4">
               <RouterLink to="/register/buyer" class="inline-flex items-center justify-center bg-emerald-600 text-white font-bold py-2.5 px-6 rounded-full text-sm">Shop Now</RouterLink>
