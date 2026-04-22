@@ -260,19 +260,19 @@ onMounted(async () => {
     <main class="flex-grow">
             <!-- Hero Section -->
       <section v-if="!authStore.isAuthenticated" class="relative w-full bg-gradient-to-br from-emerald-50 via-white to-white border-b border-gray-100">
-        <div class="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12 py-6 md:py-8 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-8">
-          <div class="text-center md:text-left max-w-xl">
-            <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">{{ t('hero.title_1') }} <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-green-400">{{ t('hero.title_highlight') }}</span></h1>
-            <p class="text-sm text-gray-600 mt-2">{{ t('hero.subtitle') }}</p>
-            <div class="flex flex-col sm:flex-row gap-3 justify-center md:justify-start mt-4">
-              <RouterLink to="/register/buyer" class="inline-flex items-center justify-center bg-emerald-600 text-white font-bold py-2.5 px-6 rounded-full text-sm">Shop Now</RouterLink>
-              <RouterLink to="/register/artisan" class="inline-flex items-center justify-center border-2 border-gray-200 text-gray-700 font-bold py-2.5 px-6 rounded-full text-sm">Become a Seller</RouterLink>
+        <div class="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-5 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-6">
+          <div class="text-center md:text-left">
+            <h1 class="text-xl sm:text-2xl font-extrabold text-gray-900 leading-tight">{{ t('hero.title_1') }} <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-green-400">{{ t('hero.title_highlight') }}</span></h1>
+            <p class="text-xs text-gray-500 mt-1">{{ t('hero.subtitle') }}</p>
+            <div class="flex flex-col sm:flex-row gap-2 justify-center md:justify-start mt-3">
+              <RouterLink to="/register/buyer" class="inline-flex items-center justify-center bg-emerald-600 text-white font-bold py-2 px-5 rounded-full text-xs">Shop Now</RouterLink>
+              <RouterLink to="/register/artisan" class="inline-flex items-center justify-center border-2 border-gray-200 text-gray-700 font-bold py-2 px-5 rounded-full text-xs">Become a Seller</RouterLink>
             </div>
           </div>
           <div class="hidden md:flex items-center">
-            <div class="bg-white/70 backdrop-blur-sm border border-emerald-100 rounded-xl p-6 shadow-sm">
-              <h3 class="text-2xl font-extrabold text-emerald-800 mb-1">Build a <span class="text-emerald-600">Green Legacy</span></h3>
-              <p class="text-sm text-gray-600 leading-relaxed">Love the environment, plant a tree, and support sustainable local crafts.</p>
+            <div class="bg-white/70 backdrop-blur-sm border border-emerald-100 rounded-lg p-4 shadow-sm">
+              <h3 class="text-lg font-extrabold text-emerald-800 mb-0.5">Build a <span class="text-emerald-600">Green Legacy</span></h3>
+              <p class="text-xs text-gray-500 leading-relaxed">Love the environment, plant a tree, and support sustainable local crafts.</p>
             </div>
           </div>
         </div>
