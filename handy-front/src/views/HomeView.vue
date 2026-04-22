@@ -113,23 +113,44 @@ const activeFilterLabel = computed(() => {
 
 // ── API Calls ──
 
+// ... inside <script setup>
+
+// Helper: Get GPS Location (Non-blocking)
+const getCoords = async () => {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) return resolve(null);
+    
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ lat: pos.coords.latitude, long: pos.coords.longitude }),
+      (err) => {
+        console.warn("GPS denied or error:", err.message);
+        resolve(null); // Resolve null instead of rejecting to prevent crash
+      },
+      { timeout: 3000 }
+    );
+  });
+};
+
 const fetchProducts = async () => {
     isLoading.value = true;
     try {
         const catId = selectedChildId.value || selectedParentId.value;
         const params = {
-            lang: locale.value, // Send current language
+            lang: locale.value,
+            category_id: catId,
+            keyword: searchQuery.value,
+            city_id: selectedCityId.value
         };
-        if (catId) params.category_id = catId;
-        if (searchQuery.value) params.keyword = searchQuery.value;
-        if (selectedCityId.value) params.city_id = selectedCityId.value;
+
+        // Try to get GPS, but don't wait forever
+        const coords = await getCoords();
+        if (coords) {
+            params.lat = coords.lat;
+            params.long = coords.long;
+        }
 
         const response = await api.get('/products', { params });
-        if (response.data?.data?.length > 0) {
-          products.value = response.data.data.filter(p => p.is_in_stock);
-        } else {
-          products.value = [];
-        }
+        products.value = response.data?.data?.filter(p => p.is_in_stock) || [];
     } catch (error) {
         console.error("Fetch error", error);
         products.value = [];
@@ -140,10 +161,13 @@ const fetchProducts = async () => {
 
 const fetchRecommendations = async () => {
     try {
-        const params = { 
-            lang: locale.value // Send current language
-        };
-        if (selectedCityId.value) params.city_id = selectedCityId.value;
+        const params = { lang: locale.value, city_id: selectedCityId.value };
+
+        const coords = await getCoords();
+        if (coords) {
+            params.lat = coords.lat;
+            params.long = coords.long;
+        }
         
         const { data } = await api.get('/products/recommendations', { params });
         recommendations.value = data;
@@ -151,6 +175,8 @@ const fetchRecommendations = async () => {
         console.error("Recommendation error", e);
     }
 };
+
+// ... rest of code
 
 const fetchCities = async () => {
     try {
