@@ -39,33 +39,44 @@ const isArtisan = computed(() => authStore.isAuthenticated && Number(authStore.u
 const isDelivery = computed(() => authStore.isAuthenticated && Number(authStore.user?.role_id) === 3);
 
 const languages = [{ code: 'en', name: 'English' }, { code: 'am', name: 'አማርኛ' }, { code: 'or', name: 'Afaan Oromoo' }];
-// FIX 1: Added missing  operator
 const currentLangName = computed(() => languages.find(l => l.code === locale.value)?.name || 'Language');
 
 const changeLanguage = (code) => {
   locale.value = code;
   localStorage.setItem('locale', code);
   isLangOpen.value = false;
+  // Refetch data when language changes to update product names
+  fetchProducts();
+  fetchRecommendations();
 };
 
-// ── Helpers ──
+// ── HELPERS (Matching your artisan/ProductList.vue logic) ──
+
+// Map locale codes to Database IDs (if needed elsewhere)
+const getLangId = (code) => {
+  const map = { en: 1, am: 2, or: 3 };
+  return map[code] || 1;
+};
+
+// Robust Image URL Helper
 const getImageUrl = (path) => {
     if (!path) return 'https://via.placeholder.com/400x300?text=No+Image';
     if (path.startsWith('http')) return path;
+    
     const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+    // Strip '/api' from the end if present, then add path
     const cleanBase = baseUrl.replace(/\/api$/, '');
     return `${cleanBase}/${path}`;
 };
-const getProductName = (product) => product.name || 'Product';
+
+const getProductName = (product) => product.name || 'Product'; // Backend handles translation now
 const getShopName = (product) => product.shop?.shop_name || 'Handy Artisan';
 const getShopLogo = (product) => getImageUrl(product.shop?.logo);
 const getProductImage = (product) => getImageUrl(product.image);
 const formatPrice = (price) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'ETB' }).format(price || 0);
 
 // ── Star Rating ──
-const getStars = (rating) => {
-    return Array.from({ length: 5 }, (_, i) => i < Math.round(rating));
-};
+const getStars = (rating) => Array.from({ length: 5 }, (_, i) => i < Math.round(rating));
 // ── Category Actions ──
 const selectParent = (cat) => {
     if (selectedParentId.value === cat.id) {
@@ -80,11 +91,7 @@ const selectParent = (cat) => {
 };
 
 const selectCategory = (catId) => {
-    if (selectedChildId.value === catId) {
-        selectedChildId.value = null;
-    } else {
-        selectedChildId.value = catId;
-    }
+    selectedChildId.value = selectedChildId.value === catId ? null : catId;
 };
 
 const clearFilter = () => {
@@ -95,15 +102,12 @@ const clearFilter = () => {
 };
 
 const activeFilterLabel = computed(() => {
-    if (searchQuery.value) return t('home.search_results'); 
+    if (searchQuery.value) return t('home.search_results');
     if (selectedChildId.value) {
         const parent = categories.value.find(c => c.id === selectedParentId.value);
-        const child = parent?.children?.find(c => c.id === selectedChildId.value);
-        return child?.name || '';
+        return parent?.children?.find(c => c.id === selectedChildId.value)?.name || '';
     }
-    if (selectedParentId.value) {
-        return categories.value.find(c => c.id === selectedParentId.value)?.name || '';
-    }
+    if (selectedParentId.value) return categories.value.find(c => c.id === selectedParentId.value)?.name || '';
     return '';
 });
 
@@ -113,7 +117,9 @@ const fetchProducts = async () => {
     isLoading.value = true;
     try {
         const catId = selectedChildId.value || selectedParentId.value;
-        const params = {};
+        const params = {
+            lang: locale.value, // Send current language
+        };
         if (catId) params.category_id = catId;
         if (searchQuery.value) params.keyword = searchQuery.value;
         if (selectedCityId.value) params.city_id = selectedCityId.value;
@@ -121,9 +127,9 @@ const fetchProducts = async () => {
         const response = await api.get('/products', { params });
         if (response.data?.data?.length > 0) {
           products.value = response.data.data.filter(p => p.is_in_stock);
-      } else {
+        } else {
           products.value = [];
-      }
+        }
     } catch (error) {
         console.error("Fetch error", error);
         products.value = [];
@@ -134,7 +140,9 @@ const fetchProducts = async () => {
 
 const fetchRecommendations = async () => {
     try {
-        const params = {};
+        const params = { 
+            lang: locale.value // Send current language
+        };
         if (selectedCityId.value) params.city_id = selectedCityId.value;
         
         const { data } = await api.get('/products/recommendations', { params });
@@ -153,6 +161,7 @@ const fetchCities = async () => {
     }
 };
 
+// Watchers
 watch([selectedParentId, selectedChildId, searchQuery, selectedCityId], () => {
     fetchProducts();
 });
@@ -178,11 +187,7 @@ onMounted(async () => {
     if (cartStore.loadLocal) cartStore.loadLocal();
   }
 
-  await Promise.all([
-      fetchProducts(),
-      fetchCities(),
-      fetchRecommendations()
-  ]);
+  await Promise.all([ fetchProducts(), fetchCities(), fetchRecommendations() ]);
 
   try {
     const catRes = await api.get('/categories');
