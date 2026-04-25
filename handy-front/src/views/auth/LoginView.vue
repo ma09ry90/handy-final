@@ -11,6 +11,9 @@ const { t } = useI18n();
 const email = ref('');
 const password = ref('');
 
+// State for displaying API error messages (like "Please verify email")
+const errorMessage = ref(null);
+
 // ---------------------------------------------------------
 // UX Improvement: Clear errors when user starts typing
 // ---------------------------------------------------------
@@ -18,19 +21,50 @@ watch([email, password], () => {
     if (authStore.errors) {
         authStore.errors = null;
     }
+    // Clear local error message when user types
+    if (errorMessage.value) {
+        errorMessage.value = null;
+    }
 });
 
-
 const submit = async () => {
-    // Reset errors manually before submitting (optional, but good practice)
+    // Reset errors before submitting
     authStore.errors = null;
+    errorMessage.value = null;
     
-    // Call the login action from the Pinia store
-    // The store handles the API call, setting the user, and redirection
-    await authStore.login({
-        email: email.value,
-        password: password.value
-    });
+    try {
+        // Call the login action from the Pinia store
+        await authStore.login({
+            email: email.value,
+            password: password.value
+        });
+        
+        // If successful, the store handles the token and redirection
+        
+    } catch (error) {
+        // Handle specific errors returned by Laravel
+        if (error.response) {
+            // Status 403: Forbidden (Not verified, or Pending Approval)
+            if (error.response.status === 403) {
+                errorMessage.value = error.response.data.message;
+            } 
+            // Status 422: Validation Error (Invalid credentials format)
+            else if (error.response.status === 422) {
+                errorMessage.value = error.response.data.message || 'Invalid credentials.';
+            }
+            // Status 401: Unauthorized (Wrong password)
+            else if (error.response.status === 401) {
+                errorMessage.value = 'Invalid credentials.';
+            }
+            else {
+                // Other errors
+                errorMessage.value = 'Something went wrong. Please try again.';
+            }
+        } else {
+            // Network error
+            errorMessage.value = 'Unable to connect to server.';
+        }
+    }
 };
 </script>
 
@@ -48,6 +82,11 @@ const submit = async () => {
                 </div>
                 <h1 class="text-2xl font-bold text-gray-900">{{ $t('auth.login_title') }}</h1>
                 <p class="text-gray-500 mt-1">{{ $t('auth.login_desc') }}</p>
+            </div>
+            
+            <!-- Add this inside your template, usually above the <form> tag -->
+            <div v-if="errorMessage" class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm text-center">
+                {{ errorMessage }}
             </div>
 
             <form @submit.prevent="submit" class="flex flex-col gap-6">

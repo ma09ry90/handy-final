@@ -12,6 +12,9 @@ const { t } = useI18n();
 const product = ref(null);
 const loading = ref(true);
 const shouldScrollToReviews = ref(false);
+const isAddingToCart = ref(false);
+const cartSuccess = ref(false);
+const cartError = ref('');
 
 const getImageUrl = (path) => {
     if (!path) return 'https://via.placeholder.com/400';
@@ -45,14 +48,65 @@ const wishlistStore = useWishlistStore();
 const quantity = ref(1);
 const isWishlisted = computed(() => wishlistStore.likedIds.includes(product.value?.id));
 
-const handleAddToCart = async () => {
-    if (!product.value?.versions?.[0]) return;
-    try {
-        await cartStore.addToCart(product.value.id, product.value.versions[0].id, quantity.value);
-    } catch (error) {
-        alert(error.response?.data?.message || 'Could not add to cart.');
+// Computed: Check stock from version first, fallback to product
+const availableStock = computed(() => {
+    if (product.value?.versions?.[0]?.stock !== undefined) {
+        return product.value.versions[0].stock;
+    }
+    return product.value?.stock || 0;
+});
+
+const isInStock = computed(() => availableStock.value > 0);
+const maxQuantity = computed(() => availableStock.value);
+
+const decrementQuantity = () => {
+    if (quantity.value > 1) {
+        quantity.value--;
+        cartError.value = '';
     }
 };
+
+const incrementQuantity = () => {
+    if (quantity.value < maxQuantity.value) {
+        quantity.value++;
+        cartError.value = '';
+    }
+};
+
+const handleAddToCart = async () => {
+    if (!product.value?.versions?.[0] || !isInStock.value) return;
+    
+    // Validate quantity against stock
+    if (quantity.value > availableStock.value) {
+        cartError.value = `Only ${availableStock.value} items available.`;
+        quantity.value = availableStock.value;
+        return;
+    }
+
+    isAddingToCart.value = true;
+    cartError.value = '';
+    cartSuccess.value = false;
+
+    try {
+        await cartStore.addToCart(
+            product.value.id,
+            product.value.versions[0].id,
+            quantity.value
+        );
+        cartSuccess.value = true;
+        setTimeout(() => { cartSuccess.value = false; }, 3000);
+    } catch (error) {
+        cartError.value = error.response?.data?.message || 'Could not add to cart. Please try again.';
+    } finally {
+        isAddingToCart.value = false;
+    }
+};
+// Reset quantity when product changes
+watch(() => product.value?.id, () => {
+    quantity.value = 1;
+    cartError.value = '';
+    cartSuccess.value = false;
+});
 
 const handleToggleWishlist = () => {
     if (!product.value) return;
@@ -241,24 +295,84 @@ onMounted(async () => {
                     Sold by: <span class="text-gray-900 font-medium">{{ product.artisan?.shop || 'Handy Artisan' }}</span>
                 </p>
 
-                <div class="flex items-center gap-4 mb-6">
-                    <span class="text-gray-700 font-medium">Quantity:</span>
-                    <div class="flex items-center border border-gray-300 rounded-lg overflow-hidden">
-                        <button @click="quantity > 1 && quantity--" class="px-4 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-800 font-medium transition">−</button>
-                        <span class="px-6 py-2.5 bg-white text-gray-900 font-bold border-x border-gray-300 min-w-[48px] text-center">{{ quantity }}</span>
-                        <button @click="quantity++" class="px-4 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-800 font-medium transition">+</button>
-                    </div>
-                </div>
+                <!-- Quantity Selector -->
+<div class="flex items-center gap-4 mb-4">
+    <span class="text-gray-700 font-medium">Quantity:</span>
+    <div class="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+        <button 
+            @click="decrementQuantity" 
+            :disabled="quantity <= 1"
+            class="px-4 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-800 font-medium transition disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+            −
+        </button>
+        <span class="px-6 py-2.5 bg-white text-gray-900 font-bold border-x border-gray-300 min-w-[48px] text-center">
+            {{ quantity }}
+        </span>
+        <button 
+            @click="incrementQuantity" 
+            :disabled="quantity >= maxQuantity || !isInStock"
+            class="px-4 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-800 font-medium transition disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+            +
+        </button>
+    </div>
+                <span v-if="isInStock" class="text-sm text-gray-500">
+                    {{ availableStock }} available
+                </span>
+            </div>
 
-                <div class="flex gap-3">
-                    <button 
-                        @click="handleAddToCart" 
-                        :disabled="!product.stock || product.stock <= 0" 
-                        class="flex-1 flex items-center justify-center rounded-xl bg-emerald-600 px-8 py-4 text-lg font-bold text-white hover:bg-emerald-700 disabled:bg-gray-400 disabled:cursor-not-allowed shadow-lg transition-all"
+            <!-- Success Message -->
+            <div 
+                v-if="cartSuccess" 
+                class="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-sm flex items-center animate-fade-in"
+            >
+                <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Added to cart successfully!
+            </div>
+
+            <!-- Error Message -->
+            <div 
+                v-if="cartError" 
+                class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm flex items-center"
+            >
+                <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                {{ cartError }}
+            </div>
+
+            <!-- Add to Cart Button -->
+            <div class="flex gap-3">
+                <button 
+                    @click="handleAddToCart" 
+                    :disabled="!isInStock || isAddingToCart" 
+                    class="flex-1 flex items-center justify-center rounded-xl bg-emerald-600 px-8 py-4 text-lg font-bold text-white hover:bg-emerald-700 focus:ring-4 focus:ring-emerald-200 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:focus:ring-0 shadow-lg transition-all"
+                >
+                    <!-- Loading Spinner -->
+                    <svg 
+                        v-if="isAddingToCart" 
+                        class="animate-spin w-6 h-6 mr-2" 
+                        fill="none" 
+                        viewBox="0 0 24 24"
                     >
-                        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                        {{ product.stock > 0 ? 'Add to Cart' : 'Out of Stock' }}
-                    </button>
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                    </svg>
+                    <!-- Cart Icon -->
+                    <svg 
+                        v-else 
+                        class="w-6 h-6 mr-2" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                    >
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    {{ isAddingToCart ? 'Adding...' : (isInStock ? 'Add to Cart' : 'Out of Stock') }}
+                </button>
 
                     <button 
                         @click="handleToggleWishlist" 

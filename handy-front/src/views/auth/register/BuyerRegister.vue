@@ -22,10 +22,12 @@ const form = reactive({
 
 const errors = ref({});
 const isLoading = ref(false);
+const successMessage = ref('');  
 
 const submit = async () => {
     isLoading.value = true;
     errors.value = {};
+    successMessage.value = '';
     
     try {
         // Add the current locale to the payload
@@ -43,8 +45,15 @@ const submit = async () => {
         };
 
         const response = await api.post('/register/buyer', payload);
+        // SUCCESS! Backend returns: { message: "Registration successful. Please check..." }
+        successMessage.value = response.data.message;
         
-        const { access_token, user } = response.data;
+        // Optional: Redirect to login after 4 seconds
+        setTimeout(() => {
+            router.push('/login');
+        }, 40);
+        
+        /*const { access_token, user } = response.data;
 
         // Update Auth Store
         authStore.token = access_token;
@@ -52,7 +61,7 @@ const submit = async () => {
         
         // Save to LocalStorage
         localStorage.setItem('token', access_token);
-        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('user', JSON.stringify(user));*/
 
         // Redirect to home
         router.push('/');
@@ -78,6 +87,17 @@ const submit = async () => {
             <div class="mb-8 text-center">
                 <h1 class="text-2xl font-bold text-gray-900">{{ $t('buyer.register_title') }}</h1>
                 <p class="text-gray-500 mt-1">{{ $t('buyer.register_desc') }}</p>
+            </div>
+            <!-- NEW: Success Message Block -->
+            <div v-if="successMessage" class="max-w-md mx-auto p-6 bg-white shadow rounded-lg text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
+                    <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 mb-2">Registration Successful!</h3>
+                <p class="text-gray-600 mb-4">{{ successMessage }}</p>
+                <p class="text-sm text-gray-500">Redirecting to login...</p>
             </div>
 
             <form @submit.prevent="submit" class="flex flex-col gap-5">
