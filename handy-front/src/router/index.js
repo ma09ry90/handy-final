@@ -7,6 +7,9 @@ import DeliveryDetail from '../views/admin/DeliveryDetail.vue'
 import ReelsView from '../views/ReelsView.vue';
 import ArtisanVideoManager from '../views/artisan/VideoManager.vue';
 import { useAuthStore } from '@/stores/auth';
+import EmailVerified from '../views/EmailVerified.vue';
+import ForgotPassword from '../views/auth/ForgotPassword.vue';
+import ResetPassword from '../views/auth/ResetPassword.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -18,7 +21,26 @@ const router = createRouter({
     { path: '/register/artisan', name: 'register-artisan', component: ArtisanRegister, meta: { guest: true } },
     { path: '/register/buyer', name: 'register-buyer', component: () => import('../views/auth/register/BuyerRegister.vue'), meta: { guest: true } },
     { path: '/register/delivery', name: 'DeliveryRegister', component: () => import('../views/auth/register/DeliveryRegister.vue') },
-    
+    {
+      path: '/email-verified',
+      name: 'EmailVerified',
+      component: EmailVerified,
+      meta: { requiresAuth: false } // Important: accessible without login
+      },
+      
+        {
+      path: '/forgot-password',
+      name: 'ForgotPassword',
+      component: ForgotPassword,
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/reset-password/:token',
+      name: 'ResetPassword',
+      component: ResetPassword,
+      meta: { requiresAuth: false }
+    },
+
     { path: '/terms-and-conditions', name: 'terms', component: () => import('@/views/terms/delivery/TermsAndConditions.vue') },
     { path: '/privacy-policy', name: 'privacy', component: () => import('@/views/terms/delivery/privacy-policy.vue') },
     { path: '/delivery-guidelines', name: 'delivery-guidelines', component: () => import('@/views/terms/delivery/delivery-guidelines.vue') },

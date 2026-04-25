@@ -20,6 +20,7 @@ watch([email, password], () => {
     }
 });
 
+
 const submit = async () => {
     // Reset errors manually before submitting (optional, but good practice)
     authStore.errors = null;
@@ -99,7 +100,12 @@ const submit = async () => {
                         </span>
                     </button>
                 </div>
-                
+                <!-- Add this somewhere near the submit button -->
+                <div class="text-sm text-center mt-4">
+                <RouterLink to="/forgot-password" class="text-indigo-600 hover:underline">
+                    Forgot Password?
+                </RouterLink>
+                </div>
                 <!-- Links -->
                 <div class="text-center text-sm text-gray-500 mt-2">
                     {{ $t('auth.no_account') }} 
