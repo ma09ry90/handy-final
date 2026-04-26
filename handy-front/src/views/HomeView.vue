@@ -391,11 +391,7 @@ onMounted(async () => {
           
           <!-- Left: Image -->
           <div class="flex-shrink-0 hidden sm:flex justify-center">
-            <img 
-              src="../assets/images/front.jpg" 
-              alt="HandyStore Hero" 
-              class="h-24 md:h-32 lg:h-40 w-auto object-contain rounded-lg"
-            />
+            
           </div>
 
           <!-- Right: Text (Aligned Right) -->
