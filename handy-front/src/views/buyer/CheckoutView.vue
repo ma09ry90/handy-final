@@ -18,6 +18,9 @@ const error = ref(null)
 const warning = ref(null)
 const orderConfirmation = ref(null)
 
+// ✅ NEW: Phone Number State
+const buyerPhone = ref('')
+
 // Administrative areas
 const cities = ref([])
 const subcities = ref([])
@@ -271,12 +274,19 @@ function resetAddressForm() {
 
 async function placeOrder() {
   if (!selectedAddressId.value) return error.value = "Please select or add a delivery address."
+// 2. ✅ NEW: Validate Phone Number
+  const phoneRegex = /^(09|07)[0-9]{8}$/;
+  if (!buyerPhone.value || !phoneRegex.test(buyerPhone.value)) {
+    error.value = "Please enter a valid phone number (10 digits starting with 09 or 07).";
+    return;
+  }
+
   isProcessing.value = true
   error.value = null
   warning.value = null
 
   try {
-    const res = await api.post('/orders/checkout', { delivery_address_id: selectedAddressId.value })
+    const res = await api.post('/orders/checkout', { delivery_address_id: selectedAddressId.value, buyer_phone: buyerPhone.value})
     const responseData = res.data
     
     if (responseData.orders && responseData.orders.length > 0) {
@@ -359,19 +369,49 @@ function formatAddress(addr) {
       
       <!-- LEFT COLUMN -->
       <div class="lg:col-span-2 space-y-6">
-        
-        <!-- Section 1: Delivery Address -->
-        <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-          <div class="flex justify-between items-center mb-5">
-            <div class="flex items-center gap-2">
-              <span class="w-7 h-7 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center text-sm font-bold">1</span>
-              <h2 class="text-xl font-bold text-gray-900">Delivery Address</h2>
-            </div>
-            <button @click="showNewAddress = !showNewAddress" class="text-sm text-emerald-600 font-semibold hover:text-emerald-700 hover:underline">
-              <span v-if="showNewAddress">✕ Cancel</span>
-              <span v-else>+ Add New Address</span>
-            </button>
-          </div>
+
+        <!-- Inside your Checkout Template -->
+
+<!-- Phone Number Input Section -->
+<div class="card mb-3">
+  <div class="card-body">
+    <h5 class="card-title mb-3">Contact Details</h5>
+    
+    <div class="mb-0">
+      <label for="buyer_phone" class="form-label fw-bold">
+        Phone Number <span class="text-danger">*</span>
+      </label>
+      <input 
+        type="tel" 
+        class="form-control" 
+        id="buyer_phone"
+        v-model="buyerPhone"
+        placeholder="09XXXXXXXX"
+        maxlength="10"
+        :disabled="isProcessing"
+      >
+      <div class="form-text text-muted small mt-1">
+        The delivery person will call this number upon arrival.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Existing Place Order Button Section -->
+<div class="d-grid gap-2 mt-4">
+  <button 
+    class="btn btn-primary btn-lg" 
+    @click="placeOrder" 
+    :disabled="isProcessing"
+  >
+    <span v-if="isProcessing" class="spinner-border spinner-border-sm me-2"></span>
+    {{ isProcessing ? 'Processing...' : 'Place Order' }}
+  </button>
+  
+  <!-- Error Display -->
+  <div v-if="error" class="alert alert-danger mt-3 mb-0">
+    {{ error }}
+  </div>
 
           <!-- New Address Form -->
           <div v-if="showNewAddress" class="bg-gray-50 p-5 rounded-lg border border-gray-200 space-y-4 mb-5">
