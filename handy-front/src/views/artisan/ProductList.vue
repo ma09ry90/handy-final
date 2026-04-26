@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 
 const router = useRouter();
-const { t, locale } = useI18n(); // 'locale' gives us the current language code (en, am, or)
+const { t } = useI18n();
 
 const products = ref([]);
 const loading = ref(true);
@@ -15,18 +15,12 @@ const isLightboxOpen = ref(false);
 const selectedProduct = ref(null);
 const currentImageIndex = ref(0);
 
-// --- FIX: Image URL Helper ---
-// This handles converting relative paths to full URLs and strips /api automatically
+// --- Image URL Helper ---
 const getImageUrl = (path) => {
     if (!path) return 'https://via.placeholder.com/400x300?text=No+Image';
-    
-    // 1. If it's already a full URL (http...), return it as-is
-    if (path.startsWith('http')) return path;
+    if (path.startsWith('http')) return path; // Cloudinary URL
 
-    // 2. Construct URL
     const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
-    
-    // Strip '/api' from the end if present, then add path
     const cleanBase = baseUrl.replace(/\/api$/, '');
     return `${cleanBase}/${path}`;
 };
@@ -60,59 +54,22 @@ const deleteProduct = async (id) => {
   }
 };
 
-// --- SMART MULTILINGUAL HELPERS ---
+// --- DISPLAY HELPERS ---
 
-// Map locale codes to Database IDs
-const getLangId = (code) => {
-  const map = { en: 1, am: 2, or: 3 };
-  return map[code] || 1;
-};
-
-const getProductName = (product) => {
-  const version = product.versions?.[0];
-  if (!version) return t('product.no_name');
-
-  // 1. Try to get the user's SELECTED language
-  const preferredId = getLangId(locale.value);
-  const preferredTrans = version.translations?.find(t => t.language_id === preferredId);
-  if (preferredTrans) return preferredTrans.name;
-
-  // 2. If not found, fallback to ENGLISH (ID 1)
-  const englishTrans = version.translations?.find(t => t.language_id === 1);
-  if (englishTrans) return englishTrans.name;
-
-  // 3. If still not found, use the first available translation
-  return version.translations?.[0]?.name || t('product.no_name');
-};
-
-const getProductDescription = (product) => {
-    const version = product.versions?.[0];
-    if (!version) return '';
-
-    // 1. Try Selected Language
-    const preferredId = getLangId(locale.value);
-    const preferredTrans = version.translations?.find(t => t.language_id === preferredId);
-    if (preferredTrans) return preferredTrans.description;
-
-    // 2. Fallback to English
-    const englishTrans = version.translations?.find(t => t.language_id === 1);
-    if (englishTrans) return englishTrans.description;
-    // 3. Fallback to first available
-    return version.translations?.[0]?.description || '';
-};
+// REMOVED: The complex 'getProductName' and 'getProductDescription' functions.
+// The Controller now handles language fallback and sends 'name'/'description' directly.
 
 const getShortDescription = (product) => {
-    const fullDesc = getProductDescription(product); // Uses the smart function above
+    // Use description directly from backend response
+    const fullDesc = product.description; 
     if (!fullDesc) return t('product.no_description');
     if (fullDesc.length > 60) return fullDesc.substring(0, 60) + '...';
     return fullDesc;
 };
 
-// --- Other Helpers ---
-
 const getProductImage = (product) => {
+  // Controller returns: images: [{ id: 1, image_path: '...' }]
   if (product.images && product.images.length > 0) {
-    // Pass the raw path through the helper
     return getImageUrl(product.images[0].image_path);
   }
   return 'https://via.placeholder.com/400x300?text=No+Image';
@@ -157,8 +114,13 @@ const prevImage = () => {
 
 const currentLightboxImage = computed(() => {
   if (!selectedProduct.value || !selectedProduct.value.images) return '';
-  // Pass the raw path through the helper
-  return getImageUrl(selectedProduct.value.images[currentImageIndex.value].image_path);
+  
+  const images = selectedProduct.value.images;
+  const currentImg = images[currentImageIndex.value];
+  
+  // Handle object format: { image_path: '...' }
+  const path = currentImg.image_path;
+  return getImageUrl(path);
 });
 
 </script>
@@ -209,7 +171,7 @@ const currentLightboxImage = computed(() => {
           >
             <img 
               :src="getProductImage(product)" 
-              :alt="getProductName(product)"
+              :alt="product.name"
               class="w-full h-full object-cover"
             />
             
@@ -227,7 +189,8 @@ const currentLightboxImage = computed(() => {
             >
               {{ product.images.length }} {{ $t('product.photos') }}
             </span>
-            <!-- Stock Badge (Updated to show exact number) -->
+            
+            <!-- Stock Badge -->
             <span 
               class="absolute top-2 left-2 px-2 py-1 text-xs font-bold rounded"
               :class="{
@@ -242,20 +205,20 @@ const currentLightboxImage = computed(() => {
 
           <!-- Card Content -->
           <div class="p-4 flex-1 flex flex-col">
-            <!-- Name -->
-            <h3 class="text-sm font-medium text-gray-900 mb-1 truncate" :title="getProductName(product)">
-              {{ getProductName(product) }}
+            <!-- Name (FIXED: Use direct property) -->
+            <h3 class="text-sm font-medium text-gray-900 mb-1 truncate" :title="product.name">
+              {{ product.name }}
             </h3>
             
             <!-- Description Preview -->
             <p class="text-xs text-gray-500 mb-2 line-clamp-2">
                 {{ getShortDescription(product) }}
             </p>
-
-            <!-- Price (Optimized to use direct backend data) -->
+            <!-- Price (FIXED: Use direct property) -->
             <p class="text-lg font-bold text-emerald-600 mb-4 mt-auto">
               {{ formatPrice(product.price ?? 0) }}
             </p>
+
             <!-- Actions -->
             <div class="flex items-center justify-between border-t pt-3">
               <button 
@@ -323,24 +286,25 @@ const currentLightboxImage = computed(() => {
 
             <!-- Right: Details Section -->
             <div class="w-full md:w-1/3 p-6 flex flex-col">
+                <!-- Name (FIXED) -->
                 <h2 class="text-2xl font-bold text-gray-900 mb-2">
-                    {{ getProductName(selectedProduct) }}
+                    {{ selectedProduct?.name }}
                 </h2>
                 
-                <!-- Fixed Syntax -->
+                <!-- Price (FIXED: Use direct property) -->
                 <p class="text-2xl font-bold text-emerald-600 mb-4">
-                    {{ formatPrice(selectedProduct?.versions?.[0]?.price ?? 0) }}
+                    {{ formatPrice(selectedProduct?.price ?? 0) }}
                 </p>
-
                 <div class="border-t pt-4 mb-4">
                     <h4 class="text-xs font-semibold text-gray-500 uppercase mb-2">{{ $t('product.description') }}</h4>
                     <p class="text-sm text-gray-700 leading-relaxed overflow-y-auto max-h-40">
-                        {{ getProductDescription(selectedProduct) }}
+                        {{ selectedProduct?.description }}
                     </p>
                 </div>
                 <div class="mt-auto border-t pt-4">
+                    <!-- Stock (FIXED: Use direct property) -->
                     <p class="text-xs text-gray-500">
-                        {{ $t('product.stock_units', { count: selectedProduct?.versions?.[0]?.stock ?? 0 }) }}
+                        {{ $t('product.stock_units', { count: selectedProduct?.stock ?? 0 }) }}
                     </p>
                     <!-- Thumbnails -->
                      <div class="flex gap-2 mt-4">
@@ -351,7 +315,6 @@ const currentLightboxImage = computed(() => {
                             class="w-16 h-16 border-2 rounded cursor-pointer flex-shrink-0"
                             :class="index === currentImageIndex ? 'border-emerald-500' : 'border-transparent opacity-60 hover:opacity-100'"
                         >
-                            <!-- Pass the raw path through the helper -->
                             <img :src="getImageUrl(img.image_path)" class="w-full h-full object-cover">
                         </div>
                      </div>
