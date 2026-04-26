@@ -434,6 +434,9 @@ const submit = async () => {
 </script>
 
 <template>
+    <head><!-- Must be the FIRST thing in <head> -->
+        <meta charset="UTF-8">
+    </head>
   <div class="min-h-screen bg-white flex flex-col items-center justify-center py-12 px-4">
     <div class="w-full max-w-3xl bg-white p-8 rounded-lg border border-gray-200 shadow-sm">
       
@@ -555,7 +558,7 @@ const submit = async () => {
             
             <div class="p-4 border rounded bg-gray-50">
                 <h4 class="font-bold text-gray-700 mb-3">አማርኛ</h4>
-                <input type="text" v-model="form.shop_name_am" placeholder="የመደብ ስም" class="w-full border p-2 rounded mb-2">
+                <input lang="am" type="text" v-model="form.shop_name_am" placeholder="የመደብ ስም" class="w-full border p-2 rounded mb-2">
                 <textarea v-model="form.description_am" rows="2" placeholder="መግለጫ" class="w-full border p-2 rounded"></textarea>
             </div>
             

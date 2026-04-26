@@ -18,6 +18,7 @@ const categories = ref([]);
 const cities = ref([]); 
 const isLoading = ref(true);
 const isLangOpen = ref(false);
+const isCatOpen = ref(false);
 const isMobileMenuOpen = ref(false);
 
 // ── Search & Filter State ──
@@ -92,6 +93,7 @@ const selectParent = (cat) => {
 
 const selectCategory = (catId) => {
     selectedChildId.value = selectedChildId.value === catId ? null : catId;
+    isCatOpen.value = false;
 };
 
 const clearFilter = () => {
@@ -222,58 +224,93 @@ onMounted(async () => {
 });
 </script>
 <template>
-  <div class="min-h-screen flex flex-col bg-white font-sans">
+  <div class="min-h-screen flex flex-col app-bg font-sans">
     
     <!-- NAVIGATION BAR -->
-    <header class="bg-white border-b border-gray-100 sticky top-0 z-50 h-20">
-      <div class="w-full px-4 sm:px-6 lg:px-12 h-full">
-        <div class="flex justify-between items-center h-full max-w-[1920px] mx-auto">
+    <header class="bg-[var(--bg-card)] border-b border-[var(--border-soft)] sticky top-0 z-50">
+      <div class="w-full px-4 sm:px-6 lg:px-12 h-16 md:h-20">
+        <div class="flex justify-between items-center h-full max-w-[1920px] mx-auto gap-4">
+          
+          <!-- Logo -->
           <RouterLink to="/" class="flex items-center gap-1 flex-shrink-0">
-            <span class="text-2xl sm:text-3xl font-extrabold text-emerald-600">Handy</span>
-            <span class="text-2xl sm:text-3xl font-extrabold text-amber-400">Store</span>
+            <span class="text-2xl sm:text-3xl font-extrabold text-[var(--primary)]">Handy</span>
+            <span class="text-2xl sm:text-3xl font-extrabold text-[var(--accent)]">Store</span>
           </RouterLink>
 
-          <div class="hidden md:flex items-center gap-5">
-             <div class="relative">
-              <button @click="isLangOpen = !isLangOpen" class="flex items-center gap-1 text-gray-600 hover:text-gray-900 font-medium text-sm">
-                {{ currentLangName }}
+          <!-- Desktop Search (Center) -->
+          <div class="hidden lg:flex items-center gap-2 flex-grow max-w-xl mx-4">
+            <div class="relative flex-grow">
+              <input 
+                v-model="searchQuery"
+                type="text" 
+                :placeholder="t('home.search_placeholder')"
+                class="input w-full pl-10 pr-4 text-sm"
+              />
+              <svg class="absolute left-3 top-2.5 w-5 h-5 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            </div>
+            <select v-model="selectedCityId" class="input w-32 text-sm appearance-none cursor-pointer flex-shrink-0">
+              <option :value="null">{{ t('home.all_cities') }}</option>
+              <option v-for="city in cities" :key="city.id" :value="city.id">{{ city.name }}</option>
+            </select>
+          </div>
+
+          <!-- Desktop Right Actions -->
+          <div class="hidden md:flex items-center gap-4">
+            
+            <!-- Category Dropdown -->
+            <div class="relative">
+              <button @click="isCatOpen = !isCatOpen" class="nav-link flex items-center gap-1 font-medium">
+                {{ activeFilterLabel || 'Categories' }}
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
               </button>
-              <div v-if="isLangOpen" class="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg py-1 border z-50">
-                <button v-for="lang in languages" :key="lang.code" @click="changeLanguage(lang.code)" class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100" :class="{'bg-gray-100 font-semibold': locale === lang.code}">{{ lang.name }}</button>
+              <div v-if="isCatOpen" class="absolute right-0 mt-2 w-56 bg-[var(--bg-card)] rounded-md shadow-lg py-1 border border-[var(--border-soft)] z-50 max-h-80 overflow-y-auto">
+                <button @click="clearFilter(); isCatOpen = false" class="block w-full text-left px-4 py-2 text-sm hover:bg-[var(--bg-main)]" :class="{'bg-[var(--bg-main)] font-semibold': !selectedParentId}">{{ t('products.all') || 'All' }}</button>
+                <button v-for="cat in categories" :key="cat.id" @click="selectParent(cat); isCatOpen = false" class="block w-full text-left px-4 py-2 text-sm hover:bg-[var(--bg-main)]" :class="{'bg-[var(--bg-main)] font-semibold': selectedParentId === cat.id}">{{ cat.name }}</button>
               </div>
             </div>
 
-            <RouterLink to="/cart" class="relative p-2 text-gray-600 hover:text-emerald-600">
+            <!-- Language Dropdown -->
+            <div class="relative">
+              <button @click="isLangOpen = !isLangOpen" class="nav-link flex items-center gap-1 font-medium">
+                {{ currentLangName }}
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+              <div v-if="isLangOpen" class="absolute right-0 mt-2 w-40 bg-[var(--bg-card)] rounded-md shadow-lg py-1 border border-[var(--border-soft)] z-50">
+                <button v-for="lang in languages" :key="lang.code" @click="changeLanguage(lang.code)" class="block w-full text-left px-4 py-2 text-sm hover:bg-[var(--bg-main)]" :class="{'bg-[var(--bg-main)] font-semibold': locale === lang.code}">{{ lang.name }}</button>
+              </div>
+            </div>
+
+            <RouterLink to="/cart" class="relative p-2 text-[var(--text-muted)] hover:text-[var(--primary)]">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
               <span v-if="cartStore.count > 0" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-bold">{{ cartStore.count }}</span>
             </RouterLink>
 
             <template v-if="isBuyer">
-              <RouterLink to="/reels" class="text-gray-600 hover:text-emerald-600 font-medium text-sm">Reels</RouterLink>
-              <RouterLink to="/orders" class="text-gray-600 hover:text-emerald-600 font-medium text-sm">Orders</RouterLink>
-              <RouterLink to="/wishlist" class="text-gray-600 hover:text-emerald-600 font-medium text-sm">{{ t('nav.wishlist') }}</RouterLink>
-              <RouterLink to="/account" class="text-gray-600 hover:text-emerald-600 font-medium text-sm">{{ t('nav.my_account') }}</RouterLink>
-              <button @click="authStore.logout" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-full text-sm">{{ t('nav.logout') }}</button>
+              <RouterLink to="/reels" class="nav-link font-medium">Reels</RouterLink>
+              <RouterLink to="/orders" class="nav-link font-medium">Orders</RouterLink>
+              <RouterLink to="/wishlist" class="nav-link">{{ t('nav.wishlist') }}</RouterLink>
+              <RouterLink to="/account" class="nav-link">{{ t('nav.my_account') }}</RouterLink>
+              <button @click="authStore.logout" class="btn-neutral rounded-full text-sm font-bold">{{ t('nav.logout') }}</button>
             </template>
 
-            <!-- FIX 2: Added missing  operator -->
             <template v-else-if="isArtisan || isDelivery">
-              <RouterLink :to="isArtisan ? '/artisan/dashboard' : '/delivery/dashboard'" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-bold py-2 px-4 rounded-full text-sm">Dashboard</RouterLink>
-              <button @click="authStore.logout" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-full text-sm">{{ t('nav.logout') }}</button>
+              <RouterLink :to="isArtisan ? '/artisan/dashboard' : '/delivery/dashboard'" class="btn-primary rounded-full text-sm font-bold">Dashboard</RouterLink>
+              <button @click="authStore.logout" class="btn-neutral rounded-full text-sm font-bold">{{ t('nav.logout') }}</button>
             </template>
 
             <template v-else>
-              <RouterLink to="/login" class="text-gray-600 hover:text-emerald-600 font-medium text-sm">{{ t('nav.sign_in') }}</RouterLink>
-              <RouterLink to="/register/buyer" class="bg-amber-400 hover:bg-amber-500 text-gray-900 font-bold py-2 px-4 rounded-full text-sm">{{ t('nav.register') }}</RouterLink>
+              <RouterLink to="/login" class="nav-link font-medium">{{ t('nav.sign_in') }}</RouterLink>
+              <RouterLink to="/register/buyer" class="btn-accent rounded-full text-sm font-bold">{{ t('nav.register') }}</RouterLink>
             </template>
           </div>
+
+          <!-- Mobile Top Bar -->
           <div class="flex items-center gap-3 md:hidden">
-            <RouterLink to="/cart" class="relative p-2 text-gray-600">
+            <RouterLink to="/cart" class="relative p-2 text-[var(--text-muted)]">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
               <span v-if="cartStore.count > 0" class="absolute top-0 right-0 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">{{ cartStore.count }}</span>
             </RouterLink>
-            <button @click="isMobileMenuOpen = !isMobileMenuOpen" class="p-2 text-gray-600 focus:outline-none">
+            <button @click="isMobileMenuOpen = !isMobileMenuOpen" class="p-2 text-[var(--text-muted)] focus:outline-none">
               <svg v-if="!isMobileMenuOpen" class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
               <svg v-else class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
@@ -283,94 +320,124 @@ onMounted(async () => {
       
       <!-- MOBILE DRAWER -->
       <div v-if="isMobileMenuOpen" class="fixed inset-0 z-40 md:hidden" style="background-color: rgba(0,0,0,0.5);">
-        <div class="fixed inset-y-0 right-0 w-full max-w-sm bg-white shadow-2xl flex flex-col">
-          <div class="p-6 border-b flex justify-between items-center bg-gray-50">
-            <span class="text-xl font-bold text-gray-800">Menu</span>
-            <button @click="isMobileMenuOpen = false" class="text-gray-500 hover:text-gray-800"><svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+        <div class="fixed inset-y-0 right-0 w-full max-w-sm bg-[var(--bg-card)] shadow-2xl flex flex-col">
+          <div class="p-6 border-b border-[var(--border-soft)] flex justify-between items-center bg-[var(--bg-main)]">
+            <span class="text-xl font-bold text-[var(--text-main)]">Menu</span>
+            <button @click="isMobileMenuOpen = false" class="text-[var(--text-muted)] hover:text-[var(--text-main)]"><svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
           </div>
-          <div class="flex-grow p-6 space-y-1 overflow-y-auto">
-            <RouterLink v-if="isBuyer" to="/reels" @click="isMobileMenuOpen = false" class="flex items-center gap-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 font-medium">Reels</RouterLink>
-            <RouterLink v-if="isBuyer" to="/orders" @click="isMobileMenuOpen = false" class="flex items-center gap-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 font-medium">Orders</RouterLink>
-             <!-- FIX 3: Added missing  operator -->
-             <RouterLink v-if="isArtisan || isDelivery" :to="isArtisan ? '/artisan/dashboard' : '/delivery/dashboard'" @click="isMobileMenuOpen = false" class="flex items-center gap-3 p-3 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 font-bold">Go to Dashboard</RouterLink>
+          
+          <div class="flex-grow p-6 space-y-4 overflow-y-auto">
+            
+            <!-- Mobile Search -->
+            <div class="relative">
+              <input v-model="searchQuery" type="text" :placeholder="t('home.search_placeholder')" class="input w-full pl-10 pr-4 text-sm" />
+              <svg class="absolute left-3 top-2.5 w-5 h-5 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            </div>
+            <select v-model="selectedCityId" class="input w-full text-sm appearance-none cursor-pointer">
+              <option :value="null">{{ t('home.all_cities') }}</option>
+              <option v-for="city in cities" :key="city.id" :value="city.id">{{ city.name }}</option>
+            </select>
+
+            <!-- Mobile Categories -->
+            <div class="border-b border-[var(--border-soft)] pb-4">
+              <p class="text-xs text-[var(--text-muted)] mb-2 font-semibold uppercase tracking-wide">Categories</p>
+              <div class="flex flex-wrap gap-2">
+                <button @click="clearFilter(); isMobileMenuOpen = false" class="px-3 py-1.5 rounded-lg text-sm font-medium transition" :class="!selectedParentId ? 'bg-[var(--primary)] text-white' : 'bg-[var(--bg-main)] text-[var(--text-muted)]'">{{ t('products.all') || 'All' }}</button>
+                <button v-for="cat in categories" :key="cat.id" @click="selectParent(cat); isMobileMenuOpen = false" class="px-3 py-1.5 rounded-lg text-sm font-medium transition" :class="selectedParentId === cat.id ? 'bg-[var(--primary)] text-white' : 'bg-[var(--bg-main)] text-[var(--text-muted)]'">{{ cat.name }}</button>
+              </div>
+            </div>
+
+            <!-- Language Switcher -->
+            <div class="border-b border-[var(--border-soft)] pb-4">
+              <p class="text-xs text-[var(--text-muted)] mb-2 font-semibold uppercase tracking-wide">Language</p>
+              <div class="flex flex-wrap gap-2">
+                <button v-for="lang in languages" :key="lang.code" @click="changeLanguage(lang.code); isMobileMenuOpen = false" class="px-4 py-2 rounded-lg text-sm font-medium transition" :class="locale === lang.code ? 'bg-[var(--primary)] text-white' : 'bg-[var(--bg-main)] text-[var(--text-muted)]'">{{ lang.name }}</button>
+              </div>
+            </div>
+
+            <!-- Links -->
+            <template v-if="isBuyer">
+              <RouterLink to="/reels" @click="isMobileMenuOpen = false" class="flex items-center gap-3 p-3 rounded-lg text-[var(--text-main)] hover:bg-[var(--bg-main)] font-medium">Reels</RouterLink>
+              <RouterLink to="/orders" @click="isMobileMenuOpen = false" class="flex items-center gap-3 p-3 rounded-lg text-[var(--text-main)] hover:bg-[var(--bg-main)] font-medium">Orders</RouterLink>
+              <RouterLink to="/wishlist" @click="isMobileMenuOpen = false" class="flex items-center gap-3 p-3 rounded-lg text-[var(--text-main)] hover:bg-[var(--bg-main)] font-medium">{{ t('nav.wishlist') }}</RouterLink>
+              <RouterLink to="/account" @click="isMobileMenuOpen = false" class="flex items-center gap-3 p-3 rounded-lg text-[var(--text-main)] hover:bg-[var(--bg-main)] font-medium">{{ t('nav.my_account') }}</RouterLink>
+            </template>
+
+            <template v-if="isArtisan || isDelivery">
+              <RouterLink :to="isArtisan ? '/artisan/dashboard' : '/delivery/dashboard'" @click="isMobileMenuOpen = false" class="flex items-center gap-3 p-3 rounded-lg text-[var(--primary)] bg-[var(--bg-main)] font-bold">Go to Dashboard</RouterLink>
+            </template>
+
+            <!-- Auth Buttons -->
+            <div class="pt-4 border-t border-[var(--border-soft)] space-y-3">
+              <template v-if="isBuyer || isArtisan || isDelivery">
+                <button @click="authStore.logout(); isMobileMenuOpen = false" class="btn-neutral w-full rounded-lg text-sm font-bold">{{ t('nav.logout') }}</button>
+              </template>
+              <template v-else>
+                <RouterLink to="/login" @click="isMobileMenuOpen = false" class="btn-primary w-full text-center block rounded-lg text-sm font-bold">{{ t('nav.sign_in') }}</RouterLink>
+                <RouterLink to="/register/buyer" @click="isMobileMenuOpen = false" class="btn-accent w-full text-center block rounded-lg text-sm font-bold">{{ t('nav.register') }}</RouterLink>
+              </template>
+            </div>
+
           </div>
         </div>
       </div>
     </header>
 
     <main class="flex-grow">
-      <!-- HERO SECTION -->
-      <section class="relative w-full bg-gradient-to-br from-emerald-50 via-white to-white border-b border-gray-100">
-        <div class="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-5 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-6">
-          <div class="text-center md:text-left">
-            <h1 class="text-xl sm:text-2xl font-extrabold text-gray-900 leading-tight">{{ t('hero.title_1') }} <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-green-400">{{ t('hero.title_highlight') }}</span></h1>
-            <p class="text-xs text-gray-500 mt-1">{{ t('hero.subtitle') }}</p>
+     
+      <!-- COMPACT HERO SECTION -->
+      <section class="relative w-full bg-[var(--bg-card)] border-b border-[var(--border-soft)]">
+        <div class="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12 py-4 md:py-6 flex items-center justify-between gap-4 md:gap-8">
+          
+          <!-- Left: Image -->
+          <div class="flex-shrink-0 hidden sm:flex justify-center">
+            <img 
+              src="../assets/images/front.jpg" 
+              alt="HandyStore Hero" 
+              class="h-24 md:h-32 lg:h-40 w-auto object-contain rounded-lg"
+            />
           </div>
-        </div>
-      </section>
-      <!-- SEARCH & LOCATION BAR -->
-      <section class="sticky top-20 z-30 bg-white shadow-sm border-b">
-        <div class="w-full px-4 sm:px-6 lg:px-12 max-w-[1920px] mx-auto py-3">
-          <div class="flex flex-col sm:flex-row gap-3">
-            <div class="relative flex-grow">
-              <input 
-                v-model="searchQuery"
-                type="text" 
-                :placeholder="t('home.search_placeholder')"
-                class="w-full border border-gray-200 rounded-full py-2.5 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
-              />
-              <svg class="absolute left-3.5 top-3 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            </div>
-            
-            <div class="flex-shrink-0">
-              <select 
-                v-model="selectedCityId" 
-                class="w-full sm:w-40 border border-gray-200 rounded-full py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white appearance-none cursor-pointer"
-              >
-                <option :value="null">{{ t('home.all_cities') }}</option>
-                <option v-for="city in cities" :key="city.id" :value="city.id">{{ city.name }}</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      <!-- CATEGORY BAR -->
-      <section class="w-full bg-white border-b border-gray-100">
-        <div class="w-full px-4 sm:px-6 lg:px-12 max-w-[1920px] mx-auto py-5">
-          <div class="flex items-center gap-3 overflow-x-auto pb-3 scrollbar-hide">
-            <!-- FIX 4: Added missing  operator -->
-            <button @click="clearFilter" class="flex-shrink-0 px-4 py-2.5 rounded-full text-sm font-semibold transition border-2" :class="!selectedParentId ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-700 border-gray-200'">{{ t('products.all') || 'All' }}</button>
-            <button v-for="cat in categories" :key="cat.id" @click="selectParent(cat)" class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition border-2 bg-white" :class="selectedParentId === cat.id ? 'border-emerald-500 text-emerald-700 bg-emerald-50' : 'border-gray-200 text-gray-700'">
-              <span>{{ cat.name }}</span>
-            </button>
+          <!-- Right: Text (Aligned Right) -->
+          <div class="flex-1 text-center sm:text-right">
+            <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold text-[var(--text-main)] leading-tight">
+              {{ t('hero.title_1') }} <span class="text-[var(--accent)]">{{ t('hero.title_highlight') }}</span>
+            </h1>
+            <p class="text-xs sm:text-sm text-[var(--text-muted)] mt-1">
+              {{ t('hero.subtitle') }}
+            </p>
+            <div class="mt-2 inline-flex items-center gap-2 bg-green-50 border border-green-100 px-3 py-1.5 rounded-full">
+              <span class="text-green-600 text-sm">🌱</span>
+              <p class="text-xs text-[var(--primary)] font-medium">Build a Green Legacy — plant a tree with every order.</p>
+            </div>
           </div>
+
         </div>
       </section>
 
       <!-- RECOMMENDATIONS SECTION -->
-      <section v-if="!searchQuery && !selectedParentId" class="bg-gray-50 py-8">
-         <div class="w-full px-4 sm:px-6 lg:px-12 max-w-[1920px] mx-auto space-y-10">
+      <section v-if="!searchQuery && !selectedParentId" class="bg-[var(--bg-main)] py-6">
+         <div class="w-full px-4 sm:px-6 lg:px-12 max-w-[1920px] mx-auto space-y-8">
             <div v-if="recommendations.near_you && recommendations.near_you.length > 0">
-              <h3 class="text-lg font-bold text-gray-800 mb-4">{{ t('home.near_you') }}</h3>
+              <h3 class="text-lg font-bold text-[var(--text-main)] mb-4">{{ t('home.near_you') }}</h3>
               <div class="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-                <div v-for="product in recommendations.near_you" :key="product.id" @click="router.push(`/product/${product.id}`)" class="min-w-[160px] sm:min-w-[200px] bg-white rounded-xl shadow-sm hover:shadow-md transition cursor-pointer border overflow-hidden">
+                <div v-for="product in recommendations.near_you" :key="product.id" @click="router.push(`/product/${product.id}`)" class="card min-w-[160px] sm:min-w-[200px] cursor-pointer">
                   <img :src="getProductImage(product)" class="w-full h-36 object-cover" />
                   <div class="p-3">
                     <h4 class="font-semibold text-sm truncate">{{ product.name }}</h4>
-                    <p class="text-emerald-600 font-bold text-sm mt-1">{{ formatPrice(product.price) }}</p>
+                    <p class="text-[var(--primary)] font-bold text-sm mt-1">{{ formatPrice(product.price) }}</p>
                   </div>
                 </div>
               </div>
             </div>
             <div v-if="recommendations.trending_addis && recommendations.trending_addis.length > 0">
-               <h3 class="text-lg font-bold text-gray-800 mb-4">{{ t('home.trending_addis') }}</h3>
+               <h3 class="text-lg font-bold text-[var(--text-main)] mb-4">{{ t('home.trending_addis') }}</h3>
                <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
-                  <div v-for="product in recommendations.trending_addis" :key="product.id" @click="router.push(`/product/${product.id}`)" class="bg-white rounded-xl shadow-sm hover:shadow-md transition cursor-pointer border overflow-hidden">
+                  <div v-for="product in recommendations.trending_addis" :key="product.id" @click="router.push(`/product/${product.id}`)" class="card cursor-pointer">
                     <img :src="getProductImage(product)" class="w-full h-32 object-cover" />
                     <div class="p-2.5">
                       <h4 class="font-semibold text-xs truncate">{{ product.name }}</h4>
-                      <p class="text-emerald-600 font-bold text-xs mt-1">{{ formatPrice(product.price) }}</p>
+                      <p class="text-[var(--primary)] font-bold text-xs mt-1">{{ formatPrice(product.price) }}</p>
                     </div>
                   </div>
                </div>
@@ -379,40 +446,39 @@ onMounted(async () => {
       </section>
 
       <!-- PRODUCT SECTION HEADING -->
-      <section class="py-6 md:py-8 bg-white w-full">
+      <section class="py-4 md:py-6 bg-[var(--bg-card)] w-full">
         <div class="w-full px-4 sm:px-6 lg:px-12 max-w-[1920px] mx-auto flex items-center justify-between">
           <div>
-            <h2 class="text-2xl md:text-3xl font-bold text-gray-900">
+            <h2 class="text-xl md:text-2xl font-bold text-[var(--text-main)]">
               <span v-if="activeFilterLabel">{{ activeFilterLabel }}</span>
-              <!-- FIX 5: Added missing  operator -->
               <span v-else>{{ t('products.heading') || 'All Products' }}</span>
             </h2>
-            <p class="text-sm text-gray-500 mt-1">{{ products.length }} {{ t('products.items') || 'items' }}</p>
+            <p class="text-sm text-[var(--text-muted)] mt-1">{{ products.length }} {{ t('products.items') || 'items' }}</p>
           </div>
-          <button v-if="selectedParentId || searchQuery" @click="clearFilter" class="text-sm text-emerald-600 hover:text-emerald-800 font-medium">Clear</button>
+          <button v-if="selectedParentId || searchQuery" @click="clearFilter" class="text-sm text-[var(--primary)] hover:text-[var(--primary-hover)] font-medium">Clear</button>
         </div>
       </section>
 
       <!-- PRODUCT GRID -->
-      <section class="py-6 md:py-12 bg-gray-50 w-full">
+      <section class="py-4 md:py-8 bg-[var(--bg-main)] w-full">
         <div class="w-full px-4 sm:px-6 lg:px-12 max-w-[1920px] mx-auto">
           <div v-if="isLoading" class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-             <div v-for="n in 8" :key="n" class="bg-white rounded-2xl overflow-hidden animate-pulse"><div class="aspect-square bg-gray-200"></div></div>
+             <div v-for="n in 8" :key="n" class="card animate-pulse"><div class="aspect-square bg-[var(--bg-main)]"></div></div>
           </div>
 
           <div v-else-if="products.length === 0" class="text-center py-20">
-             <p class="text-gray-500">No products found</p>
+             <p class="text-[var(--text-muted)]">No products found</p>
           </div>
           <div v-else class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-            <div v-for="product in products" :key="product.id" class="group relative flex flex-col bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl transition cursor-pointer">
-               <RouterLink :to="`/product/${product.id}`" class="block relative aspect-square bg-gray-100 overflow-hidden">
+            <div v-for="product in products" :key="product.id" class="group relative flex flex-col card cursor-pointer">
+               <RouterLink :to="`/product/${product.id}`" class="block relative aspect-square bg-[var(--bg-main)] overflow-hidden">
                 <img :src="getProductImage(product)" :alt="getProductName(product)" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                 <div v-if="!product.is_in_stock" class="absolute top-2 left-2 z-10 bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow">Sold Out</div>
                </RouterLink>
-               <div class="p-3 space-y-1.5 border-t border-gray-50">
-                 <h3 class="text-gray-900 font-bold text-sm leading-tight truncate">{{ getProductName(product) }}</h3>
+               <div class="p-3 space-y-1.5 border-t border-[var(--border-soft)]">
+                 <h3 class="text-[var(--text-main)] font-bold text-sm leading-tight truncate">{{ getProductName(product) }}</h3>
                  <div class="flex items-center justify-between pt-1">
-                   <span class="text-lg font-extrabold" :class="product.is_in_stock ? 'text-gray-900' : 'text-gray-400 line-through'">{{ formatPrice(product.price) }}</span>
+                   <span class="text-lg font-extrabold" :class="product.is_in_stock ? 'text-[var(--text-main)]' : 'text-gray-400 line-through'">{{ formatPrice(product.price) }}</span>
                    <button v-if="authStore.isAuthenticated" @click="handleToggleWishlist(product)" class="p-1.5 rounded-full transition" :class="wishlistStore.likedIds.includes(product.id) ? 'text-red-500' : 'text-gray-400 hover:text-red-400'">
                      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/></svg>
                    </button>
@@ -424,12 +490,11 @@ onMounted(async () => {
       </section>
     </main>
 
-    <footer class="bg-gray-900 text-white pt-16 pb-8 w-full">
+    <footer class="bg-[var(--text-main)] text-white pt-16 pb-8 w-full">
        <div class="w-full px-6 lg:px-12 max-w-[1920px] mx-auto text-center text-gray-500 text-sm">© 2024 HandyStore. All rights reserved.</div>
     </footer>
   </div>
 </template>
-
 <style>
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }

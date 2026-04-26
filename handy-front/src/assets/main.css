@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Ethiopic:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -9,6 +11,7 @@ html, body, #app {
   margin: 0;
   padding: 0;
   overflow-x: hidden; /* Prevent horizontal scroll */
+  font-family: 'Inter', 'Noto Sans Ethiopic', sans-serif;
 }
 
 /* Ensure the main container takes full height */
@@ -32,4 +35,105 @@ html, body, #app {
 .leaflet-top,
 .leaflet-bottom {
   z-index: 400 !important;
+}
+
+/* ===== COLORS ===== */
+:root {
+  --bg-main: #f6f3ee;
+  --bg-card: #ffffff;
+  --border-soft: #e5e0d8;
+
+  --primary: #047857;        /* green */
+  --primary-hover: #065f46;
+
+  --accent: #fcd34d;         /* yellow */
+  --accent-hover: #fbbf24;
+
+  --text-main: #1f2937;
+  --text-muted: #6b7280;
+}
+
+/* ===== BASE ===== */
+.app-bg {
+  background: var(--bg-main);
+  color: var(--text-main);
+}
+
+/* ===== BUTTONS ===== */
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: 0.2s;
+}
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+.btn-accent {
+  background: var(--accent);
+  color: #111;
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: 0.2s;
+}
+.btn-accent:hover {
+  background: var(--accent-hover);
+}
+
+.btn-neutral {
+  background: #eae6df;
+  color: #444;
+  padding: 8px 16px;
+  border-radius: 6px;
+}
+
+/* ===== INPUTS ===== */
+.input {
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  padding: 10px 14px;
+  background: white;
+  outline: none;
+}
+.input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+/* ===== CARD ===== */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  overflow: hidden;
+  transition: 0.3s;
+}
+.card:hover {
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+}
+
+/* ===== NAV LINK ===== */
+.nav-link {
+  color: var(--text-muted);
+  font-size: 14px;
+  transition: 0.2s;
+}
+.nav-link:hover {
+  color: var(--primary);
+}
+
+/* ===== CATEGORY ===== */
+.category-btn {
+  border: 1px solid var(--border-soft);
+  padding: 6px 14px;
+  border-radius: 6px;
+  background: white;
+  font-size: 14px;
+}
+.category-active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
 }

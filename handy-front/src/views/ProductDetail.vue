@@ -1,11 +1,12 @@
 <script setup>
-import { ref, onMounted, computed, nextTick, onUpdated } from 'vue';
+import { ref, watch, onMounted, computed, nextTick, onUpdated } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '@/plugins/axios';
 import { useCartStore } from '@/stores/cart';
 import { useWishlistStore } from '@/stores/wishlist';
 import { useI18n } from 'vue-i18n';
 
+// ... rest of your code remains the same
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
