@@ -45,41 +45,38 @@ const closeLightbox = () => { isLightboxOpen.value = false; };
 
 // ── Cart & Wishlist ──
 // ── Cart & Wishlist ──
+// ── Cart & Wishlist ──
 const cartStore = useCartStore();
 const wishlistStore = useWishlistStore();
 const quantity = ref(1);
 const isWishlisted = computed(() => wishlistStore.likedIds.includes(product.value?.id));
 
-// Get the selected version (with fallback handling)
+// Get the selected version (with fallback to product itself)
 const selectedVersion = computed(() => {
-    if (!product.value?.versions?.length) return null;
-    return product.value.versions[0];
+    if (!product.value) return null;
+    
+    // If versions exist, use the first one
+    if (product.value.versions?.length) {
+        return product.value.versions[0];
+    }
+    
+    // FALLBACK: Use product itself as the "version" 
+    // (for simple products without variants)
+    return {
+        id: product.value.id,
+        stock: product.value.stock,
+        price: product.value.price
+    };
 });
 
-// Stock from version, fallback to product stock
+// Stock calculation with fallback
 const availableStock = computed(() => {
     if (!product.value) return 0;
-    if (selectedVersion.value?.stock !== undefined && selectedVersion.value?.stock !== null) {
-        return Number(selectedVersion.value.stock);
-    }
-    return Number(product.value.stock) || 0;
+    return Number(selectedVersion.value?.stock) || Number(product.value.stock) || 0;
 });
 
 const isInStock = computed(() => availableStock.value > 0);
 const maxQuantity = computed(() => availableStock.value);
-
-// Debug: Log product structure on load
-watch(product, (newVal) => {
-    if (newVal) {
-        console.log('📦 Product loaded:', {
-            id: newVal.id,
-            name: newVal.name,
-            stock: newVal.stock,
-            versions: newVal.versions?.length || 0,
-            firstVersion: newVal.versions?.[0] || 'NONE'
-        });
-    }
-}, { immediate: true });
 
 const decrementQuantity = () => {
     if (quantity.value > 1) {
@@ -98,42 +95,28 @@ const incrementQuantity = () => {
 const handleAddToCart = async () => {
     console.log('🛒 handleAddToCart triggered');
     
-    // Clear previous errors
     cartError.value = '';
     cartSuccess.value = false;
 
-    // Check product exists
     if (!product.value) {
-        cartError.value = 'Product not loaded. Please refresh the page.';
+        cartError.value = 'Product not loaded.';
         return;
     }
 
-    // Check stock
     if (!isInStock.value) {
-        cartError.value = 'This product is currently out of stock.';
+        cartError.value = 'This product is out of stock.';
         return;
     }
 
-    // Check for version - THIS IS THE LIKELY FAILURE POINT
-    if (!selectedVersion.value) {
-        cartError.value = 'Product configuration is missing. Please contact support.';
-        console.error('❌ No version found! Product structure:', {
-            id: product.value.id,
-            hasVersions: !!product.value.versions,
-            versionsLength: product.value.versions?.length,
-            productKeys: Object.keys(product.value)
-        });
-        return;
-    }
-
-    const versionId = selectedVersion.value.id;
+    // Get version ID - fallback to product ID if no versions
+    const versionId = selectedVersion.value?.id || product.value.id;
+    
     console.log('✅ Adding to cart:', {
         productId: product.value.id,
         versionId: versionId,
         quantity: quantity.value
     });
 
-    // Validate quantity
     if (quantity.value > availableStock.value) {
         cartError.value = `Only ${availableStock.value} items available.`;
         quantity.value = availableStock.value;
@@ -143,7 +126,6 @@ const handleAddToCart = async () => {
     isAddingToCart.value = true;
 
     try {
-        // Call cart store - matching what cart.vue expects
         await cartStore.addToCart(
             product.value.id,
             versionId,
@@ -152,27 +134,17 @@ const handleAddToCart = async () => {
         
         console.log('✅ Successfully added to cart');
         cartSuccess.value = true;
-        
-        // Reset quantity after success
-        setTimeout(() => { 
-            cartSuccess.value = false; 
-        }, 3000);
+        setTimeout(() => { cartSuccess.value = false; }, 3000);
         
     } catch (error) {
         console.error('❌ Add to cart failed:', error.response?.data || error);
-        
-        // Handle specific error messages from API
         const apiMessage = error.response?.data?.message;
         const apiErrors = error.response?.data?.errors;
         
         if (apiErrors) {
-            // Handle validation errors
-            const errorMessages = Object.values(apiErrors).flat();
-            cartError.value = errorMessages.join(', ');
+            cartError.value = Object.values(apiErrors).flat().join(', ');
         } else if (apiMessage) {
             cartError.value = apiMessage;
-        } else if (error.message) {
-            cartError.value = error.message;
         } else {
             cartError.value = 'Failed to add to cart. Please try again.';
         }
@@ -187,6 +159,51 @@ watch(() => product.value?.id, () => {
     cartError.value = '';
     cartSuccess.value = false;
 });
+
+const handleToggleWishlist = () => {
+    if (!product.value) return;
+    wishlistStore.toggleWishlist(product.value.id);
+};
+
+// ── Fetch Product - Try with versions included ──
+onMounted(async () => {
+    if (route.hash === '#reviews') {
+        shouldScrollToReviews.value = true;
+    }
+
+    try {
+        // OPTION 1: Try fetching WITH versions (common Laravel pattern)
+        let data;
+        try {
+            const response = await api.get(`/products/${route.params.id}`, {
+                params: { include: 'versions,images,reviews' }
+            });
+            data = response.data;
+        } catch (includeError) {
+            // OPTION 2: If include param fails, try normal fetch
+            console.log('Include param failed, trying normal fetch...');
+            const response = await api.get(`/products/${route.params.id}`);
+            data = response.data;
+        }
+        
+        console.log('📦 Product loaded:', {
+            id: data.id,
+            name: data.name,
+            hasVersions: !!data.versions?.length,
+            versionsCount: data.versions?.length || 0
+        });
+        
+        product.value = data;
+    } catch (e) {
+        console.error('Failed to load product:', e);
+        router.push('/');
+    } finally {
+        loading.value = false;
+        if (shouldScrollToReviews.value) {
+            await nextTick();
+            scrollToReviews();
+        }
+    };
 
 const handleToggleWishlist = () => {
     if (!product.value) return;

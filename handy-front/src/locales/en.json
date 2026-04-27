@@ -155,7 +155,8 @@
   "home":{
     "search_placeholder": "search",
     "all_cities":"All cities",
-    "trending_addis":"Trending Addis"
+    "trending_addis":"Trending Addis",
+    "near_you": "Near you"
   },
   "footer": {
     "desc": "Connecting passionate artisans with customers who value uniqueness and quality.",
