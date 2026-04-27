@@ -171,7 +171,11 @@ const { t } = useI18n()
 
 const loading = ref(true)
 const error = ref(null)
-const stats = ref({ total_products: 0, low_stock_alerts: 0, total_revenue: '0.00' })
+const stats = ref({ 
+  total_products: 0, 
+  low_stock_alerts: 0, 
+  total_revenue: '0.00' 
+})
 const products = ref([])
 
 const handleImageError = (event) => {
@@ -182,16 +186,30 @@ const fetchDashboard = async () => {
   try {
     loading.value = true
     error.value = null
+    
     const response = await api.get('/artisan/dashboard')
-    const data = response.data
-    if (data.stats) {
+    
+    // ✅ FIX: Some APIs wrap responses in a 'data' object. This handles both.
+    const data = response.data?.data ? response.data.data : response.data
+    
+    // 🐛 DEBUG: Open browser console (F12) to see exactly what the backend is sending
+    console.log('--- RAW DASHBOARD DATA ---')
+    console.log(data)
+    console.log('--------------------------')
+
+    // 1. Parse Stats safely
+    if (data && data.stats) {
       stats.value = {
-        total_products: data.stats.total_products || 0,
-        low_stock_alerts: data.stats.low_stock_alerts || 0,
-        total_revenue: data.stats.total_revenue || '0.00',
+        total_products: data.stats.total_products ?? 0,
+        low_stock_alerts: data.stats.low_stock_alerts ?? 0,
+        total_revenue: data.stats.total_revenue ?? '0.00',
       }
+    } else {
+      console.warn("⚠️ 'stats' object is missing or empty in the API response!")
     }
-    if (Array.isArray(data.recent_products)) {
+
+    // 2. Parse Products safely
+    if (Array.isArray(data?.recent_products)) {
       products.value = data.recent_products.map(product => ({
         id: product.id,
         name: product.name || 'Untitled Product',
@@ -201,15 +219,29 @@ const fetchDashboard = async () => {
         has_ar: product.has_ar || false,
       }))
     } else {
+      console.warn("⚠️ 'recent_products' is missing or not an array in the API response!")
       products.value = []
     }
+
   } catch (err) {
-    console.error("Dashboard fetch error:", err)
-    error.value = err.response?.data?.error_debug || err.response?.data?.message || err.message
+    console.error("❌ Dashboard API Error:", err)
+    
+    // Better error extraction for 419 CSRF, 500 Server Error, etc.
+    if (err.response) {
+      error.value = err.response?.data?.error_debug || 
+                    err.response?.data?.message || 
+                    `Server Error (Status ${err.response.status})`
+    } else if (err.request) {
+      error.value = "Network Error: No response received from server."
+    } else {
+      error.value = err.message || "An unknown error occurred."
+    }
   } finally {
     loading.value = false
   }
 }
 
-onMounted(() => { fetchDashboard() })
+onMounted(() => { 
+  fetchDashboard() 
+})
 </script>
