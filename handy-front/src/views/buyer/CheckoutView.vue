@@ -10,7 +10,9 @@ const router = useRouter()
 const cartStore = useCartStore()
 const authStore = useAuthStore()
 
-// State
+// ========================
+// Core State
+// ========================
 const addresses = ref([])
 const selectedAddressId = ref(null)
 const isProcessing = ref(false)
@@ -18,16 +20,51 @@ const error = ref(null)
 const warning = ref(null)
 const orderConfirmation = ref(null)
 
-// ✅ NEW: Phone Number State
+// ========================
+// Phone Number State
+// ========================
 const buyerPhone = ref('')
+const phoneError = ref('')
 
-// Administrative areas
+const isPhoneValid = computed(() => {
+  return /^(09|07)[0-9]{8}$/.test(buyerPhone.value)
+})
+
+const sanitizePhone = () => {
+  // Strip everything except digits
+  buyerPhone.value = buyerPhone.value.replace(/\D/g, '').slice(0, 10)
+
+  if (buyerPhone.value.length === 0) {
+    phoneError.value = ''
+    return
+  }
+
+  if (buyerPhone.value.length < 10) {
+    phoneError.value = `Phone number must be 10 digits (${buyerPhone.value.length}/10)`
+    return
+  }
+
+  // Exactly 10 digits — check prefix
+  if (!buyerPhone.value.startsWith('09') && !buyerPhone.value.startsWith('07')) {
+    phoneError.value = 'Phone number must start with 09 or 07'
+    return
+  }
+
+  // All good
+  phoneError.value = ''
+}
+
+// ========================
+// Administrative Areas
+// ========================
 const cities = ref([])
 const subcities = ref([])
 const woredas = ref([])
 const loadingAreas = ref(false)
 
-// New address form
+// ========================
+// New Address Form
+// ========================
 const showNewAddress = ref(false)
 const newAddress = ref({
   city_id: '',
@@ -39,10 +76,11 @@ const newAddress = ref({
   longitude: null
 })
 
-// Map state
+// ========================
+// Map State
+// ========================
 const mapCoords = ref(null)
 
-// Area coordinates for map centering
 const areaCoordinates = {
   cities: {
     1: { lat: 9.0250, lng: 38.7469, name: 'Addis Ababa' },
@@ -60,18 +98,18 @@ const areaCoordinates = {
   }
 }
 
-// Computed
-const subtotal = computed(() => 
+// ========================
+// Computed Properties
+// ========================
+const subtotal = computed(() =>
   cartStore.items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
 )
 
-// ✅ BULLETPROOF: Finds the selected city object from the list
 const selectedCity = computed(() => {
   if (!newAddress.value.city_id) return null
   return cities.value.find(c => c.id === parseInt(newAddress.value.city_id))
 })
 
-// ✅ BULLETPROOF: Checks the name "Jimma" or "ጂማ" regardless of Database ID
 const isJimma = computed(() => {
   if (!selectedCity.value) return false
   const nameEn = (selectedCity.value.name_en || selectedCity.value.name || '').toLowerCase()
@@ -79,17 +117,15 @@ const isJimma = computed(() => {
   return nameEn.includes('jimma') || nameAm.includes('ጂማ')
 })
 
-// ✅ BULLETPROOF: Skips subcity for Jimma
 const skipSubcity = computed(() => {
   return isJimma.value || selectedCity.value?.skip_subcity === true
 })
 
-// ✅ BULLETPROOF: Centers map on Jimma if selected
 const mapCenter = computed(() => {
   const woredaId = parseInt(newAddress.value.woreda_id)
   const subcityId = parseInt(newAddress.value.subcity_id)
   const cityId = parseInt(newAddress.value.city_id)
-  
+
   if (woredaId && areaCoordinates.subcities[subcityId]) {
     const base = areaCoordinates.subcities[subcityId]
     return { lat: base.lat + (woredaId * 0.003), lng: base.lng + (woredaId * 0.002), name: base.name }
@@ -97,12 +133,12 @@ const mapCenter = computed(() => {
   if (subcityId && areaCoordinates.subcities[subcityId]) {
     return areaCoordinates.subcities[subcityId]
   }
-  
-  // FORCE JIMMA COORDINATES IF SELECTED
+
+  // Force Jimma coordinates
   if (isJimma.value) {
     return { lat: 7.6733, lng: 36.8325, name: 'Jimma' }
   }
-  
+
   if (cityId && areaCoordinates.cities[cityId]) {
     return areaCoordinates.cities[cityId]
   }
@@ -117,26 +153,38 @@ const mapZoom = computed(() => {
 })
 
 const canSubmitAddress = computed(() => {
-  return newAddress.value.city_id && 
-         newAddress.value.street.trim() && 
+  return newAddress.value.city_id &&
+         newAddress.value.street.trim() &&
          mapCoords.value
 })
 
 const canPlaceOrder = computed(() => {
-  return selectedAddressId.value && !isProcessing.value
+  return selectedAddressId.value &&
+         isPhoneValid.value &&
+         cartStore.items.length > 0 &&
+         !isProcessing.value
 })
 
+// ========================
 // Lifecycle
+// ========================
 onMounted(async () => {
   if (!authStore.isAuthenticated) return router.push('/login')
   await cartStore.fetchCart()
   if (cartStore.items.length === 0) return router.push('/cart')
-  
-  await fetchCities()
-  await fetchAddresses()
+
+  // Pre-fill phone from user profile if available
+  if (authStore.user?.phone) {
+    const digits = authStore.user.phone.replace(/\D/g, '')
+    buyerPhone.value = digits.slice(0, 10)
+  }
+
+  await Promise.all([fetchCities(), fetchAddresses()])
 })
 
-// Methods
+// ========================
+// API Fetchers
+// ========================
 async function fetchCities() {
   try {
     const res = await api.get('/cities')
@@ -144,7 +192,7 @@ async function fetchCities() {
   } catch (e) {
     cities.value = [
       { id: 1, name_en: 'Addis Ababa', name_am: 'አዲስ አበባ' },
-      { id: 99, name_en: 'Jimma', name_am: 'ጂማ' } // Fallback ID doesn't matter anymore
+      { id: 99, name_en: 'Jimma', name_am: 'ጂማ' }
     ]
   }
 }
@@ -202,22 +250,28 @@ async function fetchAddresses() {
   try {
     const res = await api.get('/addresses')
     addresses.value = res.data.data || res.data || []
-    if (addresses.value.length > 0) selectedAddressId.value = addresses.value[0].id
-  } catch (e) { console.error("Failed to fetch addresses", e) }
+    if (addresses.value.length > 0) {
+      selectedAddressId.value = addresses.value[0].id
+    }
+  } catch (e) {
+    console.error('Failed to fetch addresses', e)
+  }
 }
 
+// ========================
 // Watchers
+// ========================
 watch(() => newAddress.value.city_id, (newVal) => {
   newAddress.value.subcity_id = ''
   newAddress.value.woreda_id = ''
   subcities.value = []
   woredas.value = []
-  
+
   if (newVal) {
     if (skipSubcity.value) {
-      fetchWoredasForCity(newVal) // JIMMA PATH
+      fetchWoredasForCity(newVal) // Jimma path — skip subcity
     } else {
-      fetchSubcities(newVal)       // ADDIS ABABA PATH
+      fetchSubcities(newVal)       // Addis Ababa path
     }
   }
 })
@@ -237,11 +291,14 @@ watch(mapCoords, (newVal) => {
   }
 })
 
+// ========================
+// Actions
+// ========================
 async function saveNewAddress() {
   error.value = null
-  if (!newAddress.value.city_id) return error.value = "Please select a city"
-  if (!newAddress.value.street.trim()) return error.value = "Please enter your street address"
-  if (!mapCoords.value) return error.value = "Please select your exact location on the map"
+  if (!newAddress.value.city_id) return error.value = 'Please select a city'
+  if (!newAddress.value.street.trim()) return error.value = 'Please enter your street address'
+  if (!mapCoords.value) return error.value = 'Please select your exact location on the map'
 
   try {
     const payload = {
@@ -265,7 +322,15 @@ async function saveNewAddress() {
 }
 
 function resetAddressForm() {
-  newAddress.value = { city_id: '', subcity_id: '', woreda_id: '', street: '', landmark: '', latitude: null, longitude: null }
+  newAddress.value = {
+    city_id: '',
+    subcity_id: '',
+    woreda_id: '',
+    street: '',
+    landmark: '',
+    latitude: null,
+    longitude: null
+  }
   mapCoords.value = null
   showNewAddress.value = false
   subcities.value = []
@@ -273,12 +338,21 @@ function resetAddressForm() {
 }
 
 async function placeOrder() {
-  if (!selectedAddressId.value) return error.value = "Please select or add a delivery address."
-// 2. ✅ NEW: Validate Phone Number
-  const phoneRegex = /^(09|07)[0-9]{8}$/;
-  if (!buyerPhone.value || !phoneRegex.test(buyerPhone.value)) {
-    error.value = "Please enter a valid phone number (10 digits starting with 09 or 07).";
-    return;
+  // 1. Validate address
+  if (!selectedAddressId.value) {
+    error.value = 'Please select or add a delivery address.'
+    return
+  }
+
+  // 2. Validate phone number
+  if (!buyerPhone.value) {
+    error.value = 'Please enter your phone number.'
+    phoneError.value = 'Phone number is required'
+    return
+  }
+  if (!isPhoneValid.value) {
+    error.value = 'Please enter a valid phone number (10 digits starting with 09 or 07).'
+    return
   }
 
   isProcessing.value = true
@@ -286,24 +360,24 @@ async function placeOrder() {
   warning.value = null
 
   try {
-    const res = await api.post('/orders/checkout', { delivery_address_id: selectedAddressId.value, buyer_phone: buyerPhone.value})
+    const res = await api.post('/orders/checkout', {
+      delivery_address_id: selectedAddressId.value,
+      buyer_phone: buyerPhone.value
+    })
     const responseData = res.data
-    
+
     if (responseData.orders && responseData.orders.length > 0) {
-      // SUCCESS: Just show the modal. DO NOT touch the cart!
       orderConfirmation.value = responseData
     } else {
-      // FIX: If no orders were returned for some reason, throw an error instead of clearing the cart
       throw new Error('Failed to create orders. No orders returned from server.')
     }
   } catch (e) {
     const errorData = e.response?.data
     error.value = errorData?.detail || errorData?.message || e.message || 'An error occurred during checkout.'
-    
-    // FIX: Only refresh the cart from the DB to sync UI. DO NOT clear it.
+
     if (errorData?.out_of_stock || errorData?.removed_count) {
-      warning.value = errorData?.detail || 'Please review your cart.';
-      await cartStore.fetchCart() 
+      warning.value = errorData?.detail || 'Please review your cart.'
+      await cartStore.fetchCart()
     }
   } finally {
     isProcessing.value = false
@@ -312,20 +386,17 @@ async function placeOrder() {
 
 async function proceedToPayment() {
   try {
-    const orderNumbers = orderConfirmation.value.orders.map(o => o.order_number);
-    
+    const orderNumbers = orderConfirmation.value.orders.map(o => o.order_number)
+
     const res = await api.post('/payment/initiate', {
       order_ids: orderConfirmation.value.orders.map(o => o.order_id)
-    });
-    
-    // Save the order numbers
-    localStorage.setItem('pending_order_numbers', JSON.stringify(orderNumbers));
-    
-    window.location.href = res.data.checkout_url;
-    
+    })
+
+    localStorage.setItem('pending_order_numbers', JSON.stringify(orderNumbers))
+    window.location.href = res.data.checkout_url
   } catch (e) {
-    error.value = e.response?.data?.message || 'Failed to initiate payment.';
-    orderConfirmation.value = null; 
+    error.value = e.response?.data?.message || 'Failed to initiate payment.'
+    orderConfirmation.value = null
   }
 }
 
@@ -370,6 +441,23 @@ function formatAddress(addr) {
       <!-- LEFT COLUMN -->
       <div class="lg:col-span-2 space-y-6">
 
+        <!-- Section 1: Delivery Address -->
+        <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+          <div class="flex items-center justify-between mb-5">
+            <div class="flex items-center gap-2">
+              <span class="w-7 h-7 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center text-sm font-bold">1</span>
+              <h2 class="text-xl font-bold text-gray-900">Delivery Address</h2>
+            </div>
+            <button 
+              v-if="!showNewAddress" 
+              @click="showNewAddress = true" 
+              class="text-sm text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+              Add New
+            </button>
+          </div>
+
           <!-- New Address Form -->
           <div v-if="showNewAddress" class="bg-gray-50 p-5 rounded-lg border border-gray-200 space-y-4 mb-5">
             
@@ -377,7 +465,7 @@ function formatAddress(addr) {
               <!-- City -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">City / Region *</label>
-                <select v-model="newAddress.city_id" class="w-full border border-gray-300 rounded-lg p-2.5 bg-white focus:ring-2 focus:ring-emerald-500">
+                <select v-model="newAddress.city_id" class="w-full border border-gray-300 rounded-lg p-2.5 bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition">
                   <option value="">Select City</option>
                   <option v-for="city in cities" :key="city.id" :value="city.id">
                     {{ city.name_en || city.name }} {{ city.name_am ? `(${city.name_am})` : '' }}
@@ -388,7 +476,7 @@ function formatAddress(addr) {
               <!-- Subcity (HIDDEN FOR JIMMA) -->
               <div v-if="!skipSubcity">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Subcity / Zone</label>
-                <select v-model="newAddress.subcity_id" :disabled="!newAddress.city_id || loadingAreas" class="w-full border border-gray-300 rounded-lg p-2.5 bg-white disabled:bg-gray-100 focus:ring-2 focus:ring-emerald-500">
+                <select v-model="newAddress.subcity_id" :disabled="!newAddress.city_id || loadingAreas" class="w-full border border-gray-300 rounded-lg p-2.5 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition">
                   <option value="">{{ loadingAreas ? 'Loading...' : 'Select Subcity' }}</option>
                   <option v-for="sub in subcities" :key="sub.id" :value="sub.id">
                     {{ sub.name_en || sub.name }} {{ sub.name_am ? `(${sub.name_am})` : '' }}
@@ -399,7 +487,7 @@ function formatAddress(addr) {
               <!-- Woreda -->
               <div :class="skipSubcity ? 'md:col-span-2' : ''">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Woreda</label>
-                <select v-model="newAddress.woreda_id" :disabled="(!skipSubcity && !newAddress.subcity_id) || loadingAreas" class="w-full border border-gray-300 rounded-lg p-2.5 bg-white disabled:bg-gray-100 focus:ring-2 focus:ring-emerald-500">
+                <select v-model="newAddress.woreda_id" :disabled="(!skipSubcity && !newAddress.subcity_id) || loadingAreas" class="w-full border border-gray-300 rounded-lg p-2.5 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition">
                   <option value="">{{ loadingAreas ? 'Loading...' : 'Select Woreda' }}</option>
                   <option v-for="w in woredas" :key="w.id" :value="w.id">
                     {{ w.name || `Woreda ${w.id}` }} {{ w.name_am ? `(${w.name_am})` : '' }}
@@ -411,17 +499,22 @@ function formatAddress(addr) {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Street Address *</label>
-                <input v-model="newAddress.street" type="text" placeholder="e.g., Bole Road, Near Edna Mall" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500">
+                <input v-model="newAddress.street" type="text" placeholder="e.g., Bole Road, Near Edna Mall" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition">
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Nearby Landmark</label>
-                <input v-model="newAddress.landmark" type="text" placeholder="e.g., Behind Shola Market" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500">
+                <input v-model="newAddress.landmark" type="text" placeholder="e.g., Behind Shola Market" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition">
               </div>
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Exact Delivery Location * <span class="text-gray-400 font-normal">(Click map)</span></label>
-              <div v-if="mapCenter.name" class="mb-2 text-xs text-emerald-600 bg-emerald-50 inline-block px-2 py-1 rounded">🗺️ Centered on: {{ mapCenter.name }}</div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Exact Delivery Location * 
+                <span class="text-gray-400 font-normal">(Click map)</span>
+              </label>
+              <div v-if="mapCenter.name" class="mb-2 text-xs text-emerald-600 bg-emerald-50 inline-block px-2 py-1 rounded">
+                🗺️ Centered on: {{ mapCenter.name }}
+              </div>
               
               <MapPicker v-model="mapCoords" :center-lat="mapCenter.lat" :center-lng="mapCenter.lng" :zoom="mapZoom" />
               
@@ -429,8 +522,18 @@ function formatAddress(addr) {
               <p v-else class="mt-2 text-xs text-emerald-600">✅ Location selected: {{ mapCoords.lat.toFixed(6) }}, {{ mapCoords.lng.toFixed(6) }}</p>
             </div>
 
-            <div class="flex justify-end pt-2">
-              <button @click="saveNewAddress" :disabled="!canSubmitAddress" class="bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white px-8 py-2.5 rounded-lg font-semibold transition">
+            <div class="flex justify-end pt-2 gap-3">
+              <button 
+                @click="showNewAddress = false" 
+                class="border border-gray-300 text-gray-600 hover:bg-gray-100 px-6 py-2.5 rounded-lg font-semibold transition"
+              >
+                Cancel
+              </button>
+              <button 
+                @click="saveNewAddress" 
+                :disabled="!canSubmitAddress" 
+                class="bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-8 py-2.5 rounded-lg font-semibold transition"
+              >
                 💾 Save Address
               </button>
             </div>
@@ -440,61 +543,83 @@ function formatAddress(addr) {
           <div v-if="addresses.length === 0 && !showNewAddress" class="text-center py-8 text-gray-400">
             <span class="text-4xl block mb-3">📍</span>
             <p class="font-medium">No saved addresses</p>
+            <button 
+              @click="showNewAddress = true" 
+              class="mt-3 text-sm text-emerald-600 hover:text-emerald-700 font-semibold underline"
+            >
+              Add your first address
+            </button>
           </div>
           
           <div v-else class="space-y-3">
-            <label v-for="addr in addresses" :key="addr.id" class="flex items-start gap-3 p-4 border rounded-lg cursor-pointer transition-all"
-              :class="selectedAddressId === addr.id ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:bg-gray-50'">
-              <input type="radio" :value="addr.id" v-model="selectedAddressId" class="mt-1 w-4 h-4 text-emerald-600">
-              <div class="flex-1">
-                <p class="font-semibold text-gray-800">{{ addr.street }}</p>
+            <label 
+              v-for="addr in addresses" 
+              :key="addr.id" 
+              class="flex items-start gap-3 p-4 border rounded-lg cursor-pointer transition-all"
+              :class="selectedAddressId === addr.id ? 'border-emerald-500 bg-emerald-50 shadow-sm' : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300'"
+            >
+              <input type="radio" :value="addr.id" v-model="selectedAddressId" class="mt-1 w-4 h-4 text-emerald-600 focus:ring-emerald-500">
+              <div class="flex-1 min-w-0">
+                <p class="font-semibold text-gray-800 truncate">{{ addr.street }}</p>
                 <p class="text-sm text-gray-500 mt-0.5">{{ formatAddress(addr) }}</p>
-                <div v-if="addr.latitude && addr.longitude" class="mt-1 text-xs text-gray-400">📍 {{ addr.latitude.toFixed(4) }}, {{ addr.longitude.toFixed(4) }}</div>
+                <div v-if="addr.latitude && addr.longitude" class="mt-1 text-xs text-gray-400">
+                  📍 {{ addr.latitude.toFixed(4) }}, {{ addr.longitude.toFixed(4) }}
+                </div>
               </div>
-              <span v-if="selectedAddressId === addr.id" class="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-1 rounded">SELECTED</span>
+              <span 
+                v-if="selectedAddressId === addr.id" 
+                class="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-1 rounded flex-shrink-0"
+              >
+                SELECTED
+              </span>
             </label>
           </div>
         </div>
-        <!-- Phone Number Input Section -->
-<div class="card mb-3">
-  <div class="card-body">
-    <h5 class="card-title mb-3">Contact Details</h5>
-    
-    <div class="mb-0">
-      <label for="buyer_phone" class="form-label fw-bold">
-        Phone Number <span class="text-danger">*</span>
-      </label>
-      <input 
-        type="tel" 
-        class="form-control" 
-        id="buyer_phone"
-        v-model="buyerPhone"
-        placeholder="09XXXXXXXX"
-        maxlength="10"
-        :disabled="isProcessing"
-      >
-      <div class="form-text text-muted small mt-1">
-        The delivery person will call this number upon arrival.
-      </div>
-    </div>
-  </div>
-</div>
 
-<!-- Existing Place Order Button Section -->
-<div class="d-grid gap-2 mt-4">
-  <button 
-    class="btn btn-primary btn-lg" 
-    @click="placeOrder" 
-    :disabled="isProcessing"
-  >
-    <span v-if="isProcessing" class="spinner-border spinner-border-sm me-2"></span>
-    {{ isProcessing ? 'Processing...' : 'Place Order' }}
-  </button>
-  
-  <!-- Error Display -->
-  <div v-if="error" class="alert alert-danger mt-3 mb-0">
-    {{ error }}
-  </div>
+        <!-- Section 1.5: Contact Details (Phone Number) -->
+        <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+          <div class="flex items-center gap-2 mb-5">
+            <span class="w-7 h-7 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center text-sm font-bold">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+            </span>
+            <h2 class="text-xl font-bold text-gray-900">Contact Details</h2>
+          </div>
+
+          <div>
+            <label for="buyer_phone" class="block text-sm font-medium text-gray-700 mb-2">
+              Phone Number <span class="text-red-500">*</span>
+            </label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
+                <span class="text-gray-500 font-medium text-sm">🇪🇹 09</span>
+              </div>
+              <input 
+                type="tel" 
+                id="buyer_phone"
+                v-model="buyerPhone"
+                placeholder="09/07XX XXX XXXX"
+                maxlength="10"
+                :disabled="isProcessing"
+                class="w-full border border-gray-300 rounded-lg py-3 pl-[100px] pr-4 text-gray-800 font-medium placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed"
+                @input="sanitizePhone"
+              >
+            </div>
+            <div class="flex items-center gap-1.5 mt-2">
+              <svg class="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <p class="text-xs text-gray-400">
+                The delivery person will call this number upon arrival.
+              </p>
+            </div>
+            <p v-if="phoneError" class="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+              {{ phoneError }}
+            </p>
+            <p v-else-if="buyerPhone && buyerPhone.length === 10" class="text-xs text-emerald-500 mt-1.5 flex items-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              Valid phone number
+            </p>
+          </div>
+        </div>
 
         <!-- Section 2: Order Items -->
         <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
@@ -504,21 +629,23 @@ function formatAddress(addr) {
           </div>
           
           <div class="divide-y divide-gray-100">
-            <div v-for="item in cartStore.items" :key="item.version_id || item.id" class="flex items-center justify-between py-4">
-              <div class="flex items-center gap-4">
-                <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+            <div v-for="item in cartStore.items" :key="item.version_id || item.id" class="flex items-center justify-between py-4 first:pt-0 last:pb-0">
+              <div class="flex items-center gap-4 min-w-0">
+                <div class="w-11 h-11 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
                   <span class="text-gray-600 font-bold text-sm">{{ item.quantity }}×</span>
                 </div>
-                <div>
-                  <p class="font-medium text-gray-800">{{ item.name }}</p>
+                <div class="min-w-0">
+                  <p class="font-medium text-gray-800 truncate">{{ item.name }}</p>
                   <p v-if="item.seller_name" class="text-xs text-gray-400">by {{ item.seller_name }}</p>
                 </div>
               </div>
-              <span class="font-semibold text-gray-900 whitespace-nowrap">{{ (item.price * item.quantity).toLocaleString() }} ETB</span>
+              <span class="font-semibold text-gray-900 whitespace-nowrap ml-4">{{ (item.price * item.quantity).toLocaleString() }} ETB</span>
             </div>
           </div>
         </div>
+
       </div>
+      <!-- END LEFT COLUMN -->
 
       <!-- RIGHT COLUMN -->
       <div class="lg:col-span-1">
@@ -544,26 +671,58 @@ function formatAddress(addr) {
             </div>
           </div>
 
-          <div v-if="selectedAddressId" class="mb-5 p-3 bg-gray-50 rounded-lg">
-            <p class="text-xs text-gray-500 mb-1">Delivering to:</p>
+          <!-- Delivery Address Preview -->
+          <div v-if="selectedAddressId" class="mb-4 p-3 bg-gray-50 rounded-lg">
+            <p class="text-xs text-gray-500 mb-1 flex items-center gap-1">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              Delivering to:
+            </p>
             <p class="text-sm font-medium text-gray-700">{{ formatAddress(addresses.find(a => a.id === selectedAddressId)) }}</p>
           </div>
 
-          <button @click="placeOrder" :disabled="!canPlaceOrder" class="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white font-bold py-4 rounded-lg shadow-md transition-all flex items-center justify-center gap-2">
-            <svg v-if="isProcessing" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+          <!-- Phone Number Preview -->
+          <div v-if="buyerPhone && buyerPhone.length === 10" class="mb-5 p-3 bg-gray-50 rounded-lg">
+            <p class="text-xs text-gray-500 mb-1 flex items-center gap-1">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+              Contact number:
+            </p>
+            <p class="text-sm font-medium text-gray-700">+251 {{ buyerPhone }}</p>
+          </div>
+
+          <!-- Validation Messages -->
+          <div v-if="!selectedAddressId" class="mb-3 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700 flex items-center gap-2">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+            Please select a delivery address
+          </div>
+          <div v-else-if="!buyerPhone || buyerPhone.length !== 10" class="mb-3 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700 flex items-center gap-2">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+            Please enter a valid phone number
+          </div>
+
+          <button 
+            @click="placeOrder" 
+            :disabled="!canPlaceOrder" 
+            class="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-4 rounded-lg shadow-md transition-all flex items-center justify-center gap-2"
+          >
+            <svg v-if="isProcessing" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
             <span v-if="isProcessing">Calculating Delivery...</span>
             <span v-else>Place Order</span>
           </button>
           
           <div class="mt-4 flex items-center justify-center gap-1 text-xs text-gray-400">
-            <span>🔒</span><span>Secure checkout</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+            <span>Secure checkout</span>
           </div>
         </div>
       </div>
+
     </div>
 
     <!-- ================================================================== -->
-    <!-- NEW: ORDER BREAKDOWN MODAL (Shows before redirecting to Payment) -->
+    <!-- ORDER BREAKDOWN MODAL -->
     <!-- ================================================================== -->
     <div v-if="orderConfirmation" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
       <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-0 overflow-hidden">
@@ -578,7 +737,6 @@ function formatAddress(addr) {
         <!-- Body: Breakdown -->
         <div class="p-6 max-h-[60vh] overflow-y-auto space-y-4">
           
-          <!-- Loop through orders (1 per seller) -->
           <div v-for="order in orderConfirmation.orders" :key="order.order_id" class="border border-gray-200 rounded-xl p-4">
             <div class="flex justify-between items-start mb-3">
               <div>
