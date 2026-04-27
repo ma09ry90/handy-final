@@ -160,11 +160,6 @@ watch(() => product.value?.id, () => {
     cartSuccess.value = false;
 });
 
-const handleToggleWishlist = () => {
-    if (!product.value) return;
-    wishlistStore.toggleWishlist(product.value.id);
-};
-
 // ── Fetch Product - Try with versions included ──
 onMounted(async () => {
     if (route.hash === '#reviews') {
@@ -203,7 +198,8 @@ onMounted(async () => {
             await nextTick();
             scrollToReviews();
         }
-    };
+    }
+});
 
 const handleToggleWishlist = () => {
     if (!product.value) return;
