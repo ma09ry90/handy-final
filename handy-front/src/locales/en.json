@@ -124,7 +124,8 @@
     "logout": "Logout",
     "wishlist": "Wishlist",
     "artisan_panel": "Artisan Panel",
-    "wallet": "Wallet"
+    "wallet": "Wallet",
+     "profile": "Artisan Profile"
   },
   "hero": {
     "title_1": "Discover Unique",
@@ -170,7 +171,41 @@
     "title": "My Profile",
     "personal_info": "Personal Information",
     "change_password": "Change Password",
-    "password_desc": "Leave blank to keep your current password."
+    "password_desc": "Leave blank to keep your current password.",
+    "shop_info": "Shop Information",
+    "shop_name": "Shop Name",
+    "shop_description": "Shop Description",
+    "slang": "Shop Slogan / Tagline",
+    "shop_logo": "Shop Logo",
+    "upload_logo": "Upload Logo",
+    "change_logo": "Change Logo",
+    "current_file": "Currently uploaded",
+    "business_info": "Business & Legal Information",
+    "shop_address_id": "Shop Address ID",
+    "business_license_number": "Business License Number",
+    "tax_id": "Tax ID",
+    "bank_details": "Bank Details",
+    "bank_name": "Bank Name",
+    "bank_account_name": "Account Name",
+    "bank_account_number": "Account Number",
+    "documents": "Verification Documents",
+    "identity_document": "National ID / Identity Document",
+    "business_license_document": "Business License Document",
+    "tax_registration_document": "Tax Registration Document",
+    "additional_documents": "Additional Documents (Optional)",
+    "additional_documents_hint": "You can upload multiple files at once (Certificates, etc.)",
+    "add_files": "Add Files",
+    "submitted": "Document submitted",
+    "not_submitted": "No document uploaded yet",
+    "replace": "Replace File",
+    "upload": "Upload File",
+    "save": "Save Profile",
+    "saving": "Saving...",
+    "success": "Profile updated successfully!",
+    "status_pending": "Pending Review",
+    "status_approved": "Profile Approved",
+    "status_rejected": "Profile Rejected",
+    "rejected_message": "Please review your information and documents, then resubmit."
   },
 "recent_products": "Recent Products",
 "product_name": "Product Name",
@@ -314,8 +349,7 @@
       "not_as_described": "Item not as described",
       "scam_fraud": "Suspected scam or fraud",
       "other": "Other"
-    }
-  
+    } 
 }
 }
 

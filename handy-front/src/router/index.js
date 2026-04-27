@@ -10,6 +10,7 @@ import { useAuthStore } from '@/stores/auth';
 import EmailVerified from '../views/EmailVerified.vue';
 import ForgotPassword from '../views/auth/ForgotPassword.vue';
 import ResetPassword from '../views/auth/ResetPassword.vue';
+import Profile from ('../views/artisan/Profile.vue') // ✅ Added Profile
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -76,7 +77,8 @@ const router = createRouter({
         { path: 'products/:id/edit', name: 'ArtisanProductEdit', component: () => import('../views/artisan/ProductForm.vue'), meta: { title: 'Edit product' } },
         { path: 'orders', name: 'ArtisanOrders', component: () => import('../views/artisan/Orders.vue'), meta: { title: 'My Orders' } },
         { path: 'wallet', name: 'Artisanwallet', component: () => import('../views/artisan/ArtisanWallet.vue'), meta: { title: 'My Wallet' } },
-        { path: 'videos', name: 'ArtisanVideos', component: ArtisanVideoManager, meta: { title: 'My Videos' } }
+        { path: 'videos', name: 'ArtisanVideos', component: ArtisanVideoManager, meta: { title: 'My Videos' } },
+        { path: 'profile', name: 'artisan.profile', component: Profile }
       ]
     },
   ]

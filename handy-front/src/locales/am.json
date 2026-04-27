@@ -301,6 +301,45 @@
       "not_as_described": "ንጥሉ እንደተገለጸው አይደለም",
       "scam_fraud": "ስርቆት/ድልቅ እየተሰማራ ነው",
       "other": "ሌላ"
-    }
+    },
+  "nav": {
+    "profile": "የሠራተኛ መገለጫ"
+  },
+  "profile": {
+    "shop_info": "የሱቅ መረጃ",
+    "shop_name": "የሱቅ ስም",
+    "shop_description": "የሱቅ ዝርዝር",
+    "slang": "የሱቅ አቃፊ ቃል",
+    "shop_logo": "የሱቅ አርማ",
+    "upload_logo": "አርማ አስገባ",
+    "change_logo": "አርማ ቀይር",
+    "current_file": "አሁን ያለው ፋይል",
+    "business_info": "የንግድ እና ሕግ መረጃ",
+    "shop_address_id": "የሱቅ አድራሻ መለያ",
+    "business_license_number": "የንግድ ፈቃድ ቁጥር",
+    "tax_id": "የግብር መለያ",
+    "bank_details": "የባንክ ዝርዝር",
+    "bank_name": "የባንክ ስም",
+    "bank_account_name": "የመለያ ስም",
+    "bank_account_number": "የመለያ ቁጥር",
+    "documents": "የማረጋገጫ ሰነዶች",
+    "identity_document": "የብሔራዊ መታወቂያ / የመታወቂያ ሰነድ",
+    "business_license_document": "የንግድ ፈቃድ ሰነድ",
+    "tax_registration_document": "የግብር ምዝገባ ሰነድ",
+    "additional_documents": "ተጨማሪ ሰነዶች (አስገደድ)",
+    "additional_documents_hint": "ብዙ ፋይሎችን በአንድ ጊዜ ማስገባት ይችላሉ (ምስክሮች ወዘተ)",
+    "add_files": "ፋይሎች ያክሉ",
+    "submitted": "ሰነዱ ተልኳል",
+    "not_submitted": "ገና ሰነድ አልተላከም",
+    "replace": "ፋይል ቀይር",
+    "upload": "ፋይል አስገባ",
+    "save": "መገለጫ አስቀምጥ",
+    "saving": "በማስቀመጥ ላይ...",
+    "success": "መገለጫው በተሳካ ሁኔታ ተቀምጧል!",
+    "status_pending": "በግምገማ ላይ",
+    "status_approved": "መገለጫው ተቀብሏል",
+    "status_rejected": "መገለጫው ተከልክሏል",
+    "rejected_message": "እባክዎ መረጃዎን እና ሰነዶችዎን ይገምግሙ ከዚያ በድጋሚ ያስገቡ።"
+  }
   }
 }
