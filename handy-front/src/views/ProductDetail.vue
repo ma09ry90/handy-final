@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch, onMounted, computed, nextTick, onUpdated } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute, useRouter, RouterLink } from 'vue-router';
 import api from '@/plugins/axios';
 import { useCartStore } from '@/stores/cart';
 import { useWishlistStore } from '@/stores/wishlist';
@@ -44,21 +44,42 @@ const openLightbox = () => { isLightboxOpen.value = true; };
 const closeLightbox = () => { isLightboxOpen.value = false; };
 
 // ── Cart & Wishlist ──
+// ── Cart & Wishlist ──
 const cartStore = useCartStore();
 const wishlistStore = useWishlistStore();
 const quantity = ref(1);
 const isWishlisted = computed(() => wishlistStore.likedIds.includes(product.value?.id));
 
-// Computed: Check stock from version first, fallback to product
+// Get the selected version (with fallback handling)
+const selectedVersion = computed(() => {
+    if (!product.value?.versions?.length) return null;
+    return product.value.versions[0];
+});
+
+// Stock from version, fallback to product stock
 const availableStock = computed(() => {
-    if (product.value?.versions?.[0]?.stock !== undefined) {
-        return product.value.versions[0].stock;
+    if (!product.value) return 0;
+    if (selectedVersion.value?.stock !== undefined && selectedVersion.value?.stock !== null) {
+        return Number(selectedVersion.value.stock);
     }
-    return product.value?.stock || 0;
+    return Number(product.value.stock) || 0;
 });
 
 const isInStock = computed(() => availableStock.value > 0);
 const maxQuantity = computed(() => availableStock.value);
+
+// Debug: Log product structure on load
+watch(product, (newVal) => {
+    if (newVal) {
+        console.log('📦 Product loaded:', {
+            id: newVal.id,
+            name: newVal.name,
+            stock: newVal.stock,
+            versions: newVal.versions?.length || 0,
+            firstVersion: newVal.versions?.[0] || 'NONE'
+        });
+    }
+}, { immediate: true });
 
 const decrementQuantity = () => {
     if (quantity.value > 1) {
@@ -75,9 +96,44 @@ const incrementQuantity = () => {
 };
 
 const handleAddToCart = async () => {
-    if (!product.value?.versions?.[0] || !isInStock.value) return;
+    console.log('🛒 handleAddToCart triggered');
     
-    // Validate quantity against stock
+    // Clear previous errors
+    cartError.value = '';
+    cartSuccess.value = false;
+
+    // Check product exists
+    if (!product.value) {
+        cartError.value = 'Product not loaded. Please refresh the page.';
+        return;
+    }
+
+    // Check stock
+    if (!isInStock.value) {
+        cartError.value = 'This product is currently out of stock.';
+        return;
+    }
+
+    // Check for version - THIS IS THE LIKELY FAILURE POINT
+    if (!selectedVersion.value) {
+        cartError.value = 'Product configuration is missing. Please contact support.';
+        console.error('❌ No version found! Product structure:', {
+            id: product.value.id,
+            hasVersions: !!product.value.versions,
+            versionsLength: product.value.versions?.length,
+            productKeys: Object.keys(product.value)
+        });
+        return;
+    }
+
+    const versionId = selectedVersion.value.id;
+    console.log('✅ Adding to cart:', {
+        productId: product.value.id,
+        versionId: versionId,
+        quantity: quantity.value
+    });
+
+    // Validate quantity
     if (quantity.value > availableStock.value) {
         cartError.value = `Only ${availableStock.value} items available.`;
         quantity.value = availableStock.value;
@@ -85,23 +141,46 @@ const handleAddToCart = async () => {
     }
 
     isAddingToCart.value = true;
-    cartError.value = '';
-    cartSuccess.value = false;
 
     try {
+        // Call cart store - matching what cart.vue expects
         await cartStore.addToCart(
             product.value.id,
-            product.value.versions[0].id,
+            versionId,
             quantity.value
         );
+        
+        console.log('✅ Successfully added to cart');
         cartSuccess.value = true;
-        setTimeout(() => { cartSuccess.value = false; }, 3000);
+        
+        // Reset quantity after success
+        setTimeout(() => { 
+            cartSuccess.value = false; 
+        }, 3000);
+        
     } catch (error) {
-        cartError.value = error.response?.data?.message || 'Could not add to cart. Please try again.';
+        console.error('❌ Add to cart failed:', error.response?.data || error);
+        
+        // Handle specific error messages from API
+        const apiMessage = error.response?.data?.message;
+        const apiErrors = error.response?.data?.errors;
+        
+        if (apiErrors) {
+            // Handle validation errors
+            const errorMessages = Object.values(apiErrors).flat();
+            cartError.value = errorMessages.join(', ');
+        } else if (apiMessage) {
+            cartError.value = apiMessage;
+        } else if (error.message) {
+            cartError.value = error.message;
+        } else {
+            cartError.value = 'Failed to add to cart. Please try again.';
+        }
     } finally {
         isAddingToCart.value = false;
     }
 };
+
 // Reset quantity when product changes
 watch(() => product.value?.id, () => {
     quantity.value = 1;

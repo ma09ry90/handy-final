@@ -154,7 +154,7 @@
   },
   "home":{
     "search_placeholder": "search",
-    "all_cities":"all_cities",
+    "all_cities":"All cities",
     "trending_addis":"Trending Addis"
   },
   "footer": {
@@ -319,7 +319,27 @@
   "has_account": "Already have an account?",
   "login_here": "Log in here",
   "success_title": "Application Submitted!",
-  "success_msg": "Your application is under review. You will receive an email once approved by an administrator."
+  "success_msg": "Your application is under review. You will receive an email once approved by an administrator.",
+  "profile_photo":"profile Photos",
+  "driving_license":"driving license",
+  "drag_drop":"Drag Drop",
+  "browse":"browse",
+  "map_title": "map titles",
+  "map_desc": "map desc",
+  "map_reset": "map reset",
+  "documents": "Documents",
+"national_id_doc": "National_id_doc",
+"additional_info": "Additional_info",
+"address_info": "Address_info",
+"driving_license_doc": "Driving license doc",
+"vehicle_reg_doc": "vehicle_reg_doc",
+"terms_link": "Terms and Conditions",
+"privacy_link": "Privacy",
+"delivery_guide_link":"Delivery guide",
+"min_resolution": "min_resolution",
+"accepted_formats": "accepted_formats",
+"profile_photo_hint": "profile_photo_hint"
+
 },
 "validation": {
         "at_least_one_language": "Please provide shop name in at least one language",
