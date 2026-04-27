@@ -7,7 +7,25 @@
     "total_revenue": "ጠቅላላ ገቢ",
     "quick_actions": "ፈጣን እርምጎች",
     "add_product": "አዲስ ምርት አክል",
-    "view_products": "ሁሉንም ምርቶች አሳይ"
+    "view_products": "ሁሉንም ምርቶች አሳይ",
+    "welcome": "እንደገና መጣህ!",
+    "overview": "እዚህ የንግድ አጠቃላይ እይታዎ ነው",
+    "view_all_products": "ሁሉንም ምርቶች ይመልከቱ",
+    "no_alerts": "ሁሉም ንጥሎች በሙሉ ተመልክተዋል",
+    "attention": "መደራረብ ይፈልጋል",
+    "low_stock_message": "ሊያበቁ",
+    "low_stock_items": "ንጥሎች ከመጠን በታች ያሉ።",
+    "recent_products": "የቅርብ ጊዜ ምርቶች",
+    "view_all": "ሁሉንም ይመልከቱ",
+    "no_products": "ገና ምርቶች አልተጨመሩም",
+    "add_first_product": "የመጀመሪያ ምርትዎን ያክሉ",
+    "product_name": "የምርት ስም",
+    "stock": "ማስቀመጫ",
+    "price": "ዋጋ",
+    "features": "ባህሪያት",
+    "action": "ተግባር",
+    "backend_error": "የጀርባ ስህተት",
+    "server_error": "የሰርቨር ስህተት"
   },
   "login": "ግባ",
   "register": "ተመዝገብ",
@@ -264,5 +282,25 @@
     "no_history": "እስካሁን ግብይት የለም።",
     "withdraw_success": "የገንዘብ መጠየቂያው በተሳካ ሁኔታ ተልኳል!",
     "withdraw_error": "ጥያቄውን ማስገባት አልተሳካም። ሚዛኑን ይፈትሹ ወይም ይሞክሩ።"
+  },
+  "report": {
+    "title": "ችግር ሪፖርት አድርግ",
+    "context_product": "የሚሰራገፈው ምርት",
+    "reason": "ሪፖርት ምክንያት",
+    "reason_required": "እባክዎ ምክንያት ይምረጡ",
+    "select_reason": "ምክንያት ይምረጡ...",
+    "description": "ዝርዝር (አስገደድ)",
+    "placeholder": "ምን እንደሆነ እባክዎ ያብራሩ...",
+    "submit": "ሪፖርት ላክ",
+    "cancel": "ሰርዝ",
+    "success": "ሪፖርቱ በተሳካ ሁኔታ ተልኳል።",
+    "error_generic": "ችግር ተፈጥሯል እባክዎ በድጋሚ ይሞክሩ።",
+    "reasons": {
+      "damaged": "ንጥሉ በጉዳት መጣ",
+      "wrong_item": "ስህተት ንጥል ተቀብሏል",
+      "not_as_described": "ንጥሉ እንደተገለጸው አይደለም",
+      "scam_fraud": "ስርቆት/ድልቅ እየተሰማራ ነው",
+      "other": "ሌላ"
+    }
   }
 }

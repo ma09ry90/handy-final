@@ -3,6 +3,7 @@ import { ref, onMounted, watch, nextTick, onUnmounted } from 'vue'
 import api from '@/plugins/axios'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import OrderReportModal from '../../components/OrderReportModal.vue'
 
 // Fix default marker icons breaking in Vue/Webpack
 delete L.Icon.Default.prototype._getIconUrl;
@@ -64,6 +65,29 @@ const fetchOrders = async () => {
   } finally {
     isLoading.value = false
   }
+}
+
+
+// ... your existing order fetching logic ...
+
+const showReportModal = ref(false)
+const selectedProduct = reactive({
+  id: null,
+  name: '',
+  seller_id: null
+})
+
+const openReportModal = (productId, productName, sellerId) => {
+  selectedProduct.id = productId
+  selectedProduct.name = productName
+  selectedProduct.seller_id = sellerId
+  showReportModal.value = true
+}
+
+const handleReportSuccess = () => {
+  // Optional: Show a global toast notification here
+  // Or refresh the order data if needed
+  console.log('Report was submitted successfully!')
 }
 
 const openDetails = async (orderNumber) => {
@@ -341,6 +365,16 @@ onMounted(fetchOrders)
                     <span class="font-semibold text-gray-900">{{ formatPrice(item.line_total) }}</span>
                   </div>
 
+                  <button 
+                    @click="openReportModal(item.product_id, item.product_name, item.seller_id)"
+                    class="text-sm text-red-600 hover:text-red-800 font-medium flex items-center gap-1"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                    </svg>
+                    {{ t('report.title') }}
+                  </button>
+
                   <!-- ✅ NEW: REVIEW SECTION PER ITEM -->
                   <div v-if="orderDetails.status === 'delivered'" class="mt-3 pt-3 border-t border-dashed border-gray-100">
                     
@@ -486,6 +520,16 @@ onMounted(fetchOrders)
         </div>
       </div>
     </div>
+
+    <!-- The Report Modal Component -->
+    <OrderReportModal
+      :is-visible="showReportModal"
+      :product-id="selectedProduct.id"
+      :user-id="selectedProduct.seller_id"
+      :product-name="selectedProduct.name"
+      @close="showReportModal = false"
+      @submitted="handleReportSuccess"
+    />
 
   </div>
 </template>

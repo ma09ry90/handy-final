@@ -11,7 +11,26 @@
     "total_revenue": "Total Revenue",
     "quick_actions": "Quick Actions",
     "add_product": "Add New Product",
-    "view_products": "View All Products"
+    "view_products": "View All Products",
+    "welcome": "Welcome back!",
+    "overview": "Here is your business overview",
+    "view_all_products": "View All Products",
+    "no_alerts": "All items fully stocked",
+    "attention": "Attention Required",
+    "low_stock_message": "You have",
+    "low_stock_items": "item(s) running low on stock.",
+    "recent_products": "Recent Products",
+    "view_all": "View All",
+    "no_products": "No products added yet",
+    "add_first_product": "Add Your First Product",
+    "product_name": "Product Name",
+    "stock": "Stock",
+    "price": "Price",
+    "features": "Features",
+    "action": "Action",
+    "backend_error": "Backend Error",
+    "server_error": "Server Error"
+
   },
   "pending_approvals": "Pending Approvals",
   "total_buyers": "Total Buyers",
@@ -276,6 +295,27 @@
     "no_history": "No transactions yet.",
     "withdraw_success": "Withdrawal request submitted successfully!",
     "withdraw_error": "Failed to submit request. Check balance or try again."
-  }
+  },
+  "report": {
+    "title": "Report an Issue",
+    "context_product": "Reporting product",
+    "reason": "Reason for report",
+    "reason_required": "Please select a reason",
+    "select_reason": "Select a reason...",
+    "description": "Description (Optional)",
+    "placeholder": "Please explain what happened...",
+    "submit": "Submit Report",
+    "cancel": "Cancel",
+    "success": "Report submitted successfully.",
+    "error_generic": "Something went wrong. Please try again.",
+    "reasons": {
+      "damaged": "Item arrived damaged",
+      "wrong_item": "Received the wrong item",
+      "not_as_described": "Item not as described",
+      "scam_fraud": "Suspected scam or fraud",
+      "other": "Other"
+    }
+  
+}
 }
 

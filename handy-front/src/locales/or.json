@@ -5,13 +5,31 @@
   "email": "Imeeilii",
   "password": "Jecha Iccitii",
   "dashboard":{
-    "total_products": "Oomishota Waliigalaa",
     "low_stock_alerts": "Akeekkachiisa Kuusaa Xiqqaa",
     "low_stock_desc": "Kuusaa < 5 qabu",
     "total_revenue": "Gumaa Waliigalaa",
     "quick_actions": "Hoijjii Saffisa",
     "add_product": "Oomishaa Haaraa Idaju",
-    "view_products": "Oomishota Hundaa Ilaali"
+    "view_products": "Oomishota Hundaa Ilaali",
+    "welcome": "Baga nagaan deebitee!",
+    "overview": "Halkan ganama bizineessii keessanii argattan",
+    "view_all_products": "Mallaqaa Qabeenya Hunda Ilaali",
+    "total_products": "Mallaqaa Torbaa",
+    "no_alerts": "Shaakala hunda nageenya gaarii qabu",
+    "attention": "Xiyyeeffannoo Barbaachisaa",
+    "low_stock_message": "Malli",
+    "low_stock_items": "shaakala daanga'aan gadi bu'aniif.",
+    "recent_products": "Mallaqaoota Dhihotti",
+    "view_all": "Hunda Ilaali",
+    "no_products": "Mallaqaa yeroo ammaa hin jirne",
+    "add_first_product": "Mallaqa Kiristaa Keessanii Dabali",
+    "product_name": "Maqaa Mallaqaa",
+    "stock": "Ajandaa",
+    "price": "Qiyyaa",
+    "features": "Mirkanaa'ina",
+    "action": "Tarkaanfii",
+    "backend_error": "Dogoggora Biraawzarii",
+    "server_error": "Dogoggora Sarvira"
   },
   "pending_approvals": "Kan Eegalamanii Jiran",
   "total_buyers": "Buuyerotota Waliigalaa",
@@ -268,5 +286,27 @@
     "no_history": "Yoo taatee hin jirane.",
     "withdraw_success": "Gaaffii fudhaadhii sirriitti ergameera!",
     "withdraw_error": "Gaaffii ergachuun hin milkaa'ne. Qabxiin ykn sirriittin isin yaadachi."
+  },
+  "report": {
+    "title": "Raga Dhorgoomsu",
+    "context_product": "Mallaqaa dhorgomuu",
+    "reason": "Sababni dhorgoomsu",
+    "reason_required": "Sababii mallattoo keessaa filadhu",
+    "select_reason": "Sababii filadhu...",
+    "description": "Bal'ina (Dabala)",
+    "placeholder": "Maal dhufef ibsa...",
+    "submit": "Ergaa Galchi",
+    "cancel": "Dhiisi",
+    "success": "Ergaan galatamameera.",
+    "error_generic": "Dogoggora dhufeef dhihootti moo dubattin.",
+    "reasons": {
+      "damaged": "Shaakala badaa dhufe",
+      "wrong_item": "Shaakala dogoggora dhufee qabanneerra",
+      "not_as_described": "Shaakali akka ibsametti miti",
+      "scam_fraud": "Sirkanaa/dooggoggora dhageessameera",
+      "other": "Kana biraa"
+    }
   }
+  
 }
+

@@ -59,7 +59,7 @@ const router = createRouter({
     { path: '/wishlist', name: 'Wishlist', component: () => import('../views/buyer/MyWishlist.vue') },
     { path: '/checkout', name: 'Checkout', component: () => import('../views/buyer/CheckoutView.vue'), meta: { requiresAuth: true } },
     { path: '/payment/success', name: 'payment.success', component: () => import('../views/buyer/PaymentSuccessView.vue') },
-    { path: '/orders', name: 'orders', component: () => import('../views/buyer/OrdersView.vue'), meta: { requiresAuth: true } },
+    { path: '/orders', name: 'orders', component: () => import('../views/buyer/OrdersView.vue'), meta: { requiresAuth: true }, props: true },
     
     // Delivery Routes
     { path: '/delivery/dashboard', name: 'DeliveryDashboard', component: () => import('../views/delivery/DeliveryDashboard.vue'), meta: { requiresAuth: true, role: 'delivery' } },
