@@ -370,49 +370,6 @@ function formatAddress(addr) {
       <!-- LEFT COLUMN -->
       <div class="lg:col-span-2 space-y-6">
 
-        <!-- Inside your Checkout Template -->
-
-<!-- Phone Number Input Section -->
-<div class="card mb-3">
-  <div class="card-body">
-    <h5 class="card-title mb-3">Contact Details</h5>
-    
-    <div class="mb-0">
-      <label for="buyer_phone" class="form-label fw-bold">
-        Phone Number <span class="text-danger">*</span>
-      </label>
-      <input 
-        type="tel" 
-        class="form-control" 
-        id="buyer_phone"
-        v-model="buyerPhone"
-        placeholder="09XXXXXXXX"
-        maxlength="10"
-        :disabled="isProcessing"
-      >
-      <div class="form-text text-muted small mt-1">
-        The delivery person will call this number upon arrival.
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Existing Place Order Button Section -->
-<div class="d-grid gap-2 mt-4">
-  <button 
-    class="btn btn-primary btn-lg" 
-    @click="placeOrder" 
-    :disabled="isProcessing"
-  >
-    <span v-if="isProcessing" class="spinner-border spinner-border-sm me-2"></span>
-    {{ isProcessing ? 'Processing...' : 'Place Order' }}
-  </button>
-  
-  <!-- Error Display -->
-  <div v-if="error" class="alert alert-danger mt-3 mb-0">
-    {{ error }}
-  </div>
-
           <!-- New Address Form -->
           <div v-if="showNewAddress" class="bg-gray-50 p-5 rounded-lg border border-gray-200 space-y-4 mb-5">
             
@@ -498,6 +455,46 @@ function formatAddress(addr) {
             </label>
           </div>
         </div>
+        <!-- Phone Number Input Section -->
+<div class="card mb-3">
+  <div class="card-body">
+    <h5 class="card-title mb-3">Contact Details</h5>
+    
+    <div class="mb-0">
+      <label for="buyer_phone" class="form-label fw-bold">
+        Phone Number <span class="text-danger">*</span>
+      </label>
+      <input 
+        type="tel" 
+        class="form-control" 
+        id="buyer_phone"
+        v-model="buyerPhone"
+        placeholder="09XXXXXXXX"
+        maxlength="10"
+        :disabled="isProcessing"
+      >
+      <div class="form-text text-muted small mt-1">
+        The delivery person will call this number upon arrival.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Existing Place Order Button Section -->
+<div class="d-grid gap-2 mt-4">
+  <button 
+    class="btn btn-primary btn-lg" 
+    @click="placeOrder" 
+    :disabled="isProcessing"
+  >
+    <span v-if="isProcessing" class="spinner-border spinner-border-sm me-2"></span>
+    {{ isProcessing ? 'Processing...' : 'Place Order' }}
+  </button>
+  
+  <!-- Error Display -->
+  <div v-if="error" class="alert alert-danger mt-3 mb-0">
+    {{ error }}
+  </div>
 
         <!-- Section 2: Order Items -->
         <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
