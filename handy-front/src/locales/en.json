@@ -125,7 +125,9 @@
     "wishlist": "Wishlist",
     "artisan_panel": "Artisan Panel",
     "wallet": "Wallet",
-     "profile": "Artisan Profile"
+     "profile": "Artisan Profile",
+     "videos": "videos",
+     "orders":"Orders"
   },
   "hero": {
     "title_1": "Discover Unique",
@@ -133,7 +135,8 @@
     "title_2": "Treasures",
     "subtitle": "Connect with talented creators. Find one-of-a-kind pieces that tell a story. Support the craft.",
     "btn_shop": "Start Shopping",
-    "btn_seller": "Become a Seller"
+    "btn_seller": "Become a Seller",
+    "badge": "With every order, let's plant one tree"
   },
   "promo": {
     "title": "Grand Opening Sale! Get",
@@ -146,12 +149,28 @@
     "heading": "Featured Collection",
     "subheading": "Hand-picked items just for you",
     "quick_add": "Quick Add",
-    "explore": "Explore All Products"
+    "explore": "Explore All Products",
+    "all":"all"
+  },
+  "home":{
+    "search_placeholder": "search",
+    "all_cities":"all_cities",
+    "trending_addis":"Trending Addis"
   },
   "footer": {
     "desc": "Connecting passionate artisans with customers who value uniqueness and quality.",
     "links": "Quick Links",
-    "contact": "Contact"
+    "contact": "Contact",
+    "brand_desc": "Ethiopia's premier marketplace for unique, handmade products. Connecting artisans directly to buyers.",
+  "join_title": "Join Handy",
+  "link_artisan": "Register as Artisan",
+  "link_delivery": "Register as Delivery",
+  "contact_title": "Contact Us",
+  "address_text": "Bole, Addis Ababa, Ethiopia",
+  "social_title": "Follow Us",
+  "rights": "All rights reserved.",
+  "terms": "Terms & Conditions",
+  "privacy": "Privacy Policy"
   },
     "auth": {
     "login_title": "Sign in to your account",

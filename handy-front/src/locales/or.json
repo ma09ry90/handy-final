@@ -137,7 +137,8 @@
     "title_2": "Adda Ta’an",
     "subtitle": "Uumtoota dandeettii qaban waliin wal qunnami. Meeshaalee adda ta’an kan seenaa qaban argadhu. Hojii harkaa deeggaru.",
     "btn_shop": "Bittaa Jalqabi",
-    "btn_seller": "Gurguraa Ta'i"
+    "btn_seller": "Gurguraa Ta'i",
+    "badge": "Bilaashaa Uumaa — qarqara gaaffii tokkotti bishaan dhangala'aa."
   },
   "promo": {
     "title": "Bittaa Baniinsa Guddaa! Argadhu",
@@ -155,7 +156,17 @@
   "footer": {
     "desc": "Artisaanota hojii isaanii jaallatan fi maamiltoota qulqullinaa fi adda ta'ina jaallatan walitti fida.",
     "links": "Liinkota Ariifachiisaa",
-    "contact": "Nu Qunnami"
+    "contact": "Nu Qunnami",
+    "brand_desc": "Itoophiyaa keessatti daldala miidaa adda addaa fi qophaa'eef daldala tokkummaa dursee.",
+  "join_title": "Handy keessatti hirmaata",
+  "link_artisan": "Artisaan ta'een galmeessi",
+  "link_delivery": "Daawitaa ta'een galmeessi",
+  "contact_title": "Nu Quunnamtii",
+  "address_text": "Boolee, Finfinnee, Itoophiyaa",
+  "social_title": "Nu Hordofi",
+  "rights": "Mirga hunda eegameera.",
+  "terms": "Waadaa fi Haala",
+  "privacy": "Polisiin Dhuunfaa"
   },
     "auth": {
     "login_title": "Gara yaadarsaa keessanii seenaa",

@@ -386,31 +386,55 @@ onMounted(async () => {
     <main class="flex-grow">
      
       <!-- COMPACT HERO SECTION -->
-      <section class="relative w-full bg-[var(--bg-card)] border-b border-[var(--border-soft)]">
-        <div class="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12 py-4 md:py-6 flex items-center justify-between gap-4 md:gap-8">
-          
-          <!-- Left: Image -->
-          <div class="flex-shrink-0 hidden sm:flex justify-center">
-            
-          </div>
+<section class="relative w-full overflow-hidden bg-gradient-to-br from-[var(--bg-card)] via-[var(--bg-card)] to-[var(--bg-sub)] border-b border-[var(--border-soft)]">
+  
+  <!-- Soft Decorative Background Blobs -->
+  <div class="absolute -top-20 -left-20 w-64 h-64 bg-[var(--accent)] opacity-10 rounded-full blur-3xl"></div>
+  <div class="absolute -bottom-20 right-10 w-48 h-48 bg-[var(--primary)] opacity-10 rounded-full blur-3xl"></div>
 
-          <!-- Right: Text (Aligned Right) -->
-          <div class="flex-1 text-center sm:text-right">
-            <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold text-[var(--text-main)] leading-tight">
-              {{ t('hero.title_1') }} <span class="text-[var(--accent)]">{{ t('hero.title_highlight') }}</span>
-            </h1>
-            <p class="text-xs sm:text-sm text-[var(--text-muted)] mt-1">
-              {{ t('hero.subtitle') }}
-            </p>
-            <div class="mt-2 inline-flex items-center gap-2 bg-green-50 border border-green-100 px-3 py-1.5 rounded-full">
-              <span class="text-green-600 text-sm">🌱</span>
-              <p class="text-xs text-[var(--primary)] font-medium">Build a Green Legacy — plant a tree with every order.</p>
-            </div>
-          </div>
+  <!-- ✅ CHANGED: justify-between to justify-center, and increased gap -->
+  <div class="relative z-10 w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12 py-8 md:py-12 flex items-center justify-center gap-8 md:gap-16">
+    
+    <!-- Left: Cute Animated Illustration -->
+    <div class="flex-shrink-0 hidden sm:flex justify-center hero-float-animation">
+      <svg class="w-36 h-36 md:w-44 md:h-44 drop-shadow-lg" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="40" y="110" width="120" height="80" rx="12" fill="var(--bg-sub)" stroke="var(--text-main)" stroke-width="4" stroke-linecap="round"/>
+        <path d="M30 110 L100 80 L170 110" stroke="var(--text-main)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="var(--bg-sub)"/>
+        <path d="M30 110 L100 85 L170 110" fill="var(--bg-card)" stroke="var(--text-main)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="80" y="85" width="40" height="15" rx="2" fill="var(--accent)" opacity="0.8"/>
+        <path d="M100 85 C100 65, 95 50, 100 30" stroke="var(--primary)" stroke-width="4" stroke-linecap="round"/>
+        <path d="M100 55 C85 45, 80 35, 90 30 C95 35, 100 45, 100 55Z" fill="var(--primary)" opacity="0.9"/>
+        <path d="M100 45 C115 35, 120 25, 110 20 C105 25, 100 35, 100 45Z" fill="var(--accent)" opacity="0.9"/>
+        <path d="M115 25 C115 20, 125 20, 125 25 C125 30, 115 35, 115 35 C115 35, 105 30, 105 25 C105 20, 115 20, 115 25Z" fill="#f87171" opacity="0.6" class="hero-heart-beat"/>
+        <circle cx="65" cy="90" r="2" fill="var(--accent)" class="hero-sparkle" style="animation-delay: 0s;"/>
+        <circle cx="140" cy="100" r="2" fill="var(--primary)" class="hero-sparkle" style="animation-delay: 0.5s;"/>
+        <circle cx="75" cy="140" r="1.5" fill="var(--text-main)" opacity="0.3" class="hero-sparkle" style="animation-delay: 1s;"/>
+      </svg>
+    </div>
 
-        </div>
-      </section>
+    <!-- ✅ CHANGED: Text Section - Aligned center on mobile, left on desktop, constrained width -->
+    <div class="flex-1 text-center lg:text-left max-w-xl hero-fade-in-up">
+      <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[var(--text-main)] leading-tight tracking-tight">
+        {{ t('hero.title_1') }} <br class="hidden sm:block"/>
+        <span class="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent)] to-[var(--primary)]">
+          {{ t('hero.title_highlight') }}
+        </span>
+      </h1>
+      
+      <p class="text-sm sm:text-base text-[var(--text-muted)] mt-3 lg:mx-0 sm:mx-auto font-medium leading-relaxed">
+        {{ t('hero.subtitle') }}
+      </p>
+      
+      <div class="mt-4 inline-flex items-center gap-2.5 bg-white/50 dark:bg-black/20 backdrop-blur-sm border border-green-200 dark:border-green-900 px-4 py-2 rounded-full shadow-sm">
+        <span class="text-lg hero-plant-grow">🌱</span>
+        <p class="text-xs sm:text-sm text-[var(--primary)] font-semibold">
+          {{ t('hero.badge') || 'Build a Green Legacy — plant a tree with every order.' }}
+        </p>
+      </div>
+    </div>
 
+  </div>
+</section>
       <!-- RECOMMENDATIONS SECTION -->
       <section v-if="!searchQuery && !selectedParentId" class="bg-[var(--bg-main)] py-6">
          <div class="w-full px-4 sm:px-6 lg:px-12 max-w-[1920px] mx-auto space-y-8">
@@ -487,11 +511,139 @@ onMounted(async () => {
     </main>
 
     <footer class="bg-[var(--text-main)] text-white pt-16 pb-8 w-full">
-       <div class="w-full px-6 lg:px-12 max-w-[1920px] mx-auto text-center text-gray-500 text-sm">© 2024 HandyStore. All rights reserved.</div>
-    </footer>
+  <div class="w-full px-6 lg:px-12 max-w-[1920px] mx-auto">
+    
+    <!-- Top Grid Section -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
+      
+      <!-- Column 1: Branding -->
+      <div class="sm:col-span-2 lg:col-span-1">
+        <h2 class="text-2xl font-extrabold tracking-tight mb-4">
+          Handy<span class="text-emerald-400">Store</span>
+        </h2>
+        <p class="text-sm text-gray-400 leading-relaxed max-w-xs">
+          {{ t('footer.brand_desc') }}
+        </p>
+      </div>
+
+      <!-- Column 2: Registration Links -->
+      <div>
+        <h3 class="text-white font-semibold text-sm uppercase tracking-wider mb-5">
+          {{ t('footer.join_title') }}
+        </h3>
+        <ul class="space-y-3">
+          <li>
+            <router-link to="/register/artisan" class="group flex items-center gap-2 text-gray-400 hover:text-emerald-400 transition-colors duration-200 text-sm">
+              <span class="w-1.5 h-1.5 bg-gray-600 rounded-full group-hover:bg-emerald-400 transition-colors"></span>
+              {{ t('footer.link_artisan') }}
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/register/delivery" class="group flex items-center gap-2 text-gray-400 hover:text-emerald-400 transition-colors duration-200 text-sm">
+              <span class="w-1.5 h-1.5 bg-gray-600 rounded-full group-hover:bg-emerald-400 transition-colors"></span>
+              {{ t('footer.link_delivery') }}
+            </router-link>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Column 3: Contact Info -->
+      <div>
+        <h3 class="text-white font-semibold text-sm uppercase tracking-wider mb-5">
+          {{ t('footer.contact_title') }}
+        </h3>
+        <ul class="space-y-4 text-sm text-gray-400">
+          <li class="flex items-start gap-3">
+            <svg class="w-4 h-4 mt-0.5 text-gray-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+            <span dir="ltr" class="text-left w-full">+251 991876250</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <svg class="w-4 h-4 mt-0.5 text-gray-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            <span>support@handystore.com</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <svg class="w-4 h-4 mt-0.5 text-gray-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <span>{{ t('footer.address_text') }}</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Column 4: Social Media -->
+      <div>
+        <h3 class="text-white font-semibold text-sm uppercase tracking-wider mb-5">
+          {{ t('footer.social_title') }}
+        </h3>
+        <div class="flex gap-3">
+          <a href="#" target="_blank" class="w-9 h-9 bg-gray-800 text-gray-400 rounded-lg flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all duration-200">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+          </a>
+          <a href="#" target="_blank" class="w-9 h-9 bg-gray-800 text-gray-400 rounded-lg flex items-center justify-center hover:bg-sky-500 hover:text-white transition-all duration-200">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+          </a>
+          <a href="#" target="_blank" class="w-9 h-9 bg-gray-800 text-gray-400 rounded-lg flex items-center justify-center hover:bg-gradient-to-tr hover:from-yellow-500 hover:via-pink-500 hover:to-purple-500 hover:text-white transition-all duration-200">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+          </a>
+          <a href="#" target="_blank" class="w-9 h-9 bg-gray-800 text-gray-400 rounded-lg flex items-center justify-center hover:bg-black hover:text-white transition-all duration-200">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Copyright Section -->
+    <div class="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+      <p class="text-gray-500 text-sm">© 2026 HandyStore. {{ t('footer.rights') }}</p>
+      <div class="flex gap-6 text-sm text-gray-500">
+        <a href="/terms-and-conditions" class="hover:text-white transition-colors">{{ t('footer.terms') }}</a>
+        <a href="/privacy-policy" class="hover:text-white transition-colors">{{ t('footer.privacy') }}</a>
+      </div>
+    </div>
+
+  </div>
+</footer>
   </div>
 </template>
-<style>
-.scrollbar-hide::-webkit-scrollbar { display: none; }
-.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+<!-- Custom Scoped Animations (Unchanged) -->
+<style scoped>
+.hero-float-animation {
+  animation: float 6s ease-in-out infinite;
+}
+@keyframes float {
+  0% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-15px) rotate(2deg); }
+  100% { transform: translateY(0px) rotate(0deg); }
+}
+.hero-fade-in-up {
+  animation: fade-in-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  opacity: 0;
+}
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.hero-heart-beat {
+  animation: heartbeat 2s ease-in-out infinite;
+  transform-origin: center;
+}
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  25% { transform: scale(1.2); }
+  50% { transform: scale(1); }
+}
+.hero-sparkle {
+  animation: sparkle 2s ease-in-out infinite;
+}
+@keyframes sparkle {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.5); }
+}
+.hero-plant-grow {
+  display: inline-block;
+  animation: pop 3s ease-in-out infinite;
+}
+@keyframes pop {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  10% { transform: scale(1.2) rotate(-10deg); }
+  20% { transform: scale(1) rotate(0deg); }
+}
 </style>
