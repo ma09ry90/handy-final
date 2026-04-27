@@ -198,9 +198,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { isRTL } from '../../plugins/i18n'
-import LanguageSwitcher from '../../components/LanguageSwitcher.vue'
-import api from '../../plugins/axios'
+import { isRTL } from '@/plugins/i18n'
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
+import api from '@/plugins/axios'
 
 const { t } = useI18n()
 
