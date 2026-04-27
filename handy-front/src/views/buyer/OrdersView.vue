@@ -1,18 +1,20 @@
 <script setup>
-import { ref, onMounted, watch, nextTick, onUnmounted } from 'vue'
+//import { ref, onMounted, watch, nextTick, onUnmounted } from 'vue'
+import { ref, reactive, onMounted, watch, nextTick, onUnmounted } from 'vue'
 import api from '@/plugins/axios'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import OrderReportModal from '../../components/OrderReportModal.vue'
-
 // Fix default marker icons breaking in Vue/Webpack
+import { useI18n } from 'vue-i18n'
+
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
-
+const { t } = useI18n()
 const orders = ref([])
 const isLoading = ref(true)
 const meta = ref(null)
