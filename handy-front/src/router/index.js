@@ -10,7 +10,7 @@ import { useAuthStore } from '@/stores/auth';
 import EmailVerified from '../views/EmailVerified.vue';
 import ForgotPassword from '../views/auth/ForgotPassword.vue';
 import ResetPassword from '../views/auth/ResetPassword.vue';
-import Profile from ('../views/artisan/Profile.vue') // ✅ Added Profile
+import Profile from '../views/artisan/Profile.vue' // ✅ Added Profile
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
