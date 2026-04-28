@@ -736,10 +736,25 @@ const submitForm = async () => {
           <div class="space-y-4">
             <h3 class="text-lg font-semibold text-gray-800 border-l-4 border-yellow-400 pl-3">{{ txt.additional_info }}</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
+             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">{{ txt.national_id }} <span class="text-red-500">*</span></label>
-                <input v-model="form.national_id_number" type="text" :class="inputClass('national_id_number')" :placeholder="txt.national_id">
+                <input 
+                  v-model="form.national_id_number" 
+                  @input="form.national_id_number = form.national_id_number.replace(/[^0-9]/g, '')"
+                  type="text" 
+                  inputmode="numeric" 
+                  maxlength="12"
+                  :class="inputClass('national_id_number')" 
+                  :placeholder="txt.national_id"
+                >
+                
+                <!-- Shows backend error if it somehow gets through -->
                 <p v-if="errors.national_id_number" class="text-red-500 text-xs mt-1">{{ errors.national_id_number[0] }}</p>
+                
+                <!-- Shows friendly warning if they haven't typed 12 digits yet -->
+                <p v-else-if="form.national_id_number && form.national_id_number.length !== 12" class="text-orange-500 text-xs mt-1">
+                  Must be exactly 12 digits.
+                </p>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">{{ txt.driving_license }}</label>

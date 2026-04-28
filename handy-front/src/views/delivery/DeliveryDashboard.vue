@@ -9,6 +9,9 @@ const otpForm = ref({ orderId: null, otp: '' })
 const otpError = ref('')
 const gpsError = ref('')
 
+// ✅ NEW: State for copy-to-clipboard feedback
+const copiedOrderId = ref(null)
+
 // Tracking Variables
 let trackingInterval = null
 const isTracking = ref(false)
@@ -30,6 +33,17 @@ const fetchOrders = async () => {
   }
 }
 
+// ✅ NEW: Copy phone number to clipboard
+const copyPhone = async (phone, orderId) => {
+  try {
+    await navigator.clipboard.writeText(phone)
+    copiedOrderId.value = orderId
+    setTimeout(() => { copiedOrderId.value = null }, 2000) // Hide "Copied!" text after 2 seconds
+  } catch (err) {
+    console.error('Failed to copy: ', err)
+  }
+}
+
 // 1. Helper to get current GPS coordinates
 const getCurrentLocation = () => {
   return new Promise((resolve, reject) => {
@@ -47,9 +61,9 @@ const getCurrentLocation = () => {
 
 const triggerAction = (orderId, action) => {
   gpsError.value = ''
+  otpError.value = ''
   if (action === 'delivered') {
     otpForm.value = { orderId, otp: '' }
-    otpError.value = ''
     showOtpModal.value = true
   } else {
     updateTrackingAndStatus(orderId, action)
@@ -89,7 +103,12 @@ const updateTrackingAndStatus = async (orderId, newStatus, otpCode = null) => {
     if (e.code === 1) { // Geolocation permission denied
       gpsError.value = 'Location permission denied. Please enable it in your browser settings.'
     } else {
-      otpError.value = e.response?.data?.message || 'Failed to update status.'
+      const errorMsg = e.response?.data?.message || 'Failed to update status.'
+      if (action === 'delivered') {
+        otpError.value = errorMsg
+      } else {
+        gpsError.value = errorMsg
+      }
     }
   }
 }
@@ -154,6 +173,8 @@ onMounted(fetchOrders)
 
     <div v-else class="space-y-6">
       <div v-for="order in orders" :key="order.id" class="bg-white rounded-xl shadow-sm border overflow-hidden">
+        
+        <!-- Header -->
         <div class="bg-gray-800 text-white p-4 flex justify-between items-center">
           <span class="font-bold">{{ order.order_number }}</span>
           <span class="px-3 py-1 rounded-full text-xs font-bold uppercase"
@@ -167,17 +188,52 @@ onMounted(fetchOrders)
           </span>
         </div>
 
+        <!-- Addresses & Phone -->
         <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          <!-- Pickup Section -->
           <div class="border-r-0 md:border-r border-gray-200 md:pr-6">
             <h3 class="font-bold text-gray-700 flex items-center gap-2 mb-2">📦 Pickup</h3>
-            <p class="text-gray-800 font-medium">{{ order.pickup_address?.street }}</p>
+            <p class="text-gray-800 font-medium mb-1">{{ order.pickup_address?.street }}</p>
+            <p v-if="order.seller?.name" class="text-sm text-gray-500">Seller: {{ order.seller.name }}</p>
           </div>
+          
+          <!-- Dropoff Section -->
           <div>
             <h3 class="font-bold text-gray-700 flex items-center gap-2 mb-2">📍 Dropoff</h3>
             <p class="text-gray-800 font-medium">{{ order.delivery_address?.street }}</p>
+            
+            <!-- ✅ NEW: Buyer Phone Number (Click to Call / Copy) -->
+            <div v-if="order.buyer_phone" class="mt-4 bg-gray-100 p-3 rounded-lg flex items-center justify-between">
+              <a 
+                :href="`tel:${order.buyer_phone}`" 
+                class="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-semibold transition"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                {{ order.buyer_phone }}
+              </a>
+              
+              <button 
+                @click="copyPhone(order.buyer_phone, order.id)" 
+                class="text-gray-500 hover:text-gray-700 transition p-1"
+                title="Copy phone number"
+              >
+                <!-- Checkmark icon when copied -->
+                <svg v-if="copiedOrderId === order.id" class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <!-- Copy icon normally -->
+                <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
 
+        <!-- Action Buttons -->
         <div class="p-4 bg-gray-50 border-t flex flex-wrap gap-3">
           <button v-if="order.status === 'assigned' || order.status === 'ready_for_pickup'" 
                   @click="triggerAction(order.id, 'picked_up')" 
