@@ -149,6 +149,12 @@ onMounted(fetchOrders)
 </script>
 
 <template>
+  <router-link to="/delivery/wallet" 
+            class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-150 group"
+            :class="$route.path === '/delivery/wallet' ? 'bg-green-200 text-green-900 shadow-sm font-semibold' : 'text-green-700 hover:bg-green-100 hover:text-green-900'">
+            <span class="text-lg">💰</span>
+            <span>{{ $t('nav.wallet') }}</span>
+</router-link>
   <div class="max-w-5xl mx-auto px-4 py-10 min-h-screen bg-gray-50 font-sans">
     <div class="flex justify-between items-center mb-8">
       <h1 class="text-3xl font-bold text-gray-900">Delivery Dashboard</h1>

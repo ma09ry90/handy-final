@@ -64,6 +64,7 @@ const router = createRouter({
     
     // Delivery Routes
     { path: '/delivery/dashboard', name: 'DeliveryDashboard', component: () => import('../views/delivery/DeliveryDashboard.vue'), meta: { requiresAuth: true, role: 'delivery' } },
+    { path: '/delivery/wallet', name: 'DeliveryWallet', component: () => import('../views/delivery/DeliveryWallet.vue'), meta: { requiresAuth: true, role: 'delivery' } },
 
     // Artisan Routes
     {

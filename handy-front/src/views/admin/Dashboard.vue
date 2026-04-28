@@ -10,6 +10,10 @@ import { usePermissions } from '@/composables/usePermissions';
 const { t } = useI18n();
 const router = useRouter();
 const authStore = useAuthStore();
+const revenue = ref({ total: 0, today: 0 })
+const artisans = ref([])
+const loadingArtisans = ref(false)
+const searchQuery = ref('')
 
 const { 
     canManageProducts, 
@@ -206,6 +210,30 @@ const openResolveModal = (report) => {
     showResolveModal.value = true;
 };
 
+const fetchRevenue = async () => {
+  try {
+    const res = await api.get('/admin/revenue')
+    revenue.value.total = res.data.total_revenue
+    revenue.value.today = res.data.today_revenue
+  } catch (e) {
+    console.error("Failed to fetch revenue", e)
+  }
+};
+const fetchArtisans = async () => {
+  loadingArtisans.value = true
+  try {
+    const params = {}
+    if (searchQuery.value) params.search = searchQuery.value
+    
+    const res = await api.get('/admin/artisans-list', { params })
+    artisans.value = res.data.data
+  } catch (e) {
+    console.error("Failed to fetch artisans", e)
+  } finally {
+    loadingArtisans.value = false
+  }
+};
+
 const submitResolve = async () => {
     if (!resolveForm.value.resolution_note.trim()) return alert("Resolution note is required.");
     try {
@@ -300,6 +328,8 @@ onMounted(async () => {
         return;
     }
 
+    fetchRevenue()
+    fetchArtisans()
     await fetchDashboard();
     if (canApproveDelivery.value) await fetchPendingDrivers();
     if (canAssignDriver.value) await fetchReadyOrders();
@@ -527,6 +557,17 @@ onMounted(async () => {
                                 <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             </div>
                         </div>
+                    </div>
+                     <!-- ✅ PASTE REVENUE CARDS HERE AS THEIR OWN SECTION -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-xl border shadow-sm">
+                        <p class="text-sm font-medium text-gray-500">Total Platform Revenue</p>
+                        <p class="text-3xl font-extrabold text-gray-900 mt-2">{{ revenue.total.toLocaleString() }} ETB</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border shadow-sm">
+                        <p class="text-sm font-medium text-gray-500">Today's Revenue</p>
+                        <p class="text-3xl font-extrabold text-emerald-600 mt-2">{{ revenue.today.toLocaleString() }} ETB</p>
+                    </div>
                     </div>
                 </div>
 
@@ -898,6 +939,52 @@ onMounted(async () => {
                             </div>
                         </div>
                     </div>
+
+                    <!-- Artisans List -->
+    <div class="bg-white rounded-xl border shadow-sm mb-8">
+      <div class="p-6 border-b flex flex-col sm:flex-row justify-between gap-4">
+        <h2 class="text-xl font-bold text-gray-900">All Artisans</h2>
+        <input 
+          v-model="searchQuery" 
+          @input="fetchArtisans()"
+          type="text" 
+          placeholder="Search by name or email..." 
+          class="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none w-full sm:w-64"
+        />
+      </div>
+      
+      <div v-if="loadingArtisans" class="p-10 text-center text-gray-400">Loading...</div>
+      
+      <table v-else class="w-full text-sm text-left">
+        <thead class="text-xs uppercase text-gray-500 bg-gray-50">
+          <tr>
+            <th class="px-6 py-3">Name</th>
+            <th class="px-6 py-3">Email</th>
+            <th class="px-6 py-3">Shop Name</th>
+            <th class="px-6 py-3">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">
+          <tr v-for="artisan in artisans" :key="artisan.id" class="hover:bg-gray-50">
+            <td class="px-6 py-4 font-medium text-gray-900">{{ artisan.name }}</td>
+            <td class="px-6 py-4 text-gray-500">{{ artisan.email }}</td>
+            <td class="px-6 py-4 text-gray-500">{{ artisan.artisan_profile?.shop_name || 'N/A' }}</td>
+            <td class="px-6 py-4">
+              <span 
+                class="px-2.5 py-1 rounded-full text-xs font-bold"
+                :class="{
+                  'bg-yellow-100 text-yellow-700': artisan.artisan_profile?.approval_status === 'pending',
+                  'bg-emerald-100 text-emerald-700': artisan.artisan_profile?.approval_status === 'approved',
+                  'bg-red-100 text-red-700': artisan.artisan_profile?.approval_status === 'rejected'
+                }"
+              >
+                {{ artisan.artisan_profile?.approval_status || 'N/A' }}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
                     <!-- ============================== -->
                     <!-- REPORTS                       -->
