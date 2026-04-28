@@ -32,8 +32,38 @@ const fetchMyVideos = async () => {
     }
 };
 
+const MAX_VIDEO_SIZE_MB = 100;
+
 const handleFileChange = (e) => {
-    form.value.video = e.target.files[0];
+    const file = e.target.files[0];
+    
+    if (!file) return;
+
+    // 1. Validate video format (MP4, MOV, WebM, AVI)
+    const allowedTypes = [
+        'video/mp4',        // Standard MP4
+        'video/quicktime',  // iPhone MOV
+        'video/webm',       // WebM
+        'video/x-msvideo'   // AVI
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+        alert('Invalid format. Please upload an MP4, MOV, WebM, or AVI file.');
+        e.target.value = ''; // Clear the invalid file from the input
+        return;
+    }
+
+    // 2. Validate video size (Max 100MB for Cloudinary Free Plan)
+    const fileSizeMB = file.size / (1024 * 1024); // Convert bytes to MB
+    
+    if (fileSizeMB > MAX_VIDEO_SIZE_MB) {
+        alert(`Video is too large! Maximum allowed size is ${MAX_VIDEO_SIZE_MB}MB. Your video is ${fileSizeMB.toFixed(1)}MB.`);
+        e.target.value = ''; // Clear the invalid file from the input
+        return;
+    }
+
+    // 3. If all checks pass, save the file to the form
+    form.value.video = file;
 };
 
 const resetForm = () => {
